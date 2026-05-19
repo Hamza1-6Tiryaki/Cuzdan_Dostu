@@ -11,6 +11,7 @@ import CartPage    from './pages/CartPage';
 import ChatPage    from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import ProductDetailPage from './pages/ProductDetailPage';
+import AdminPage from './pages/AdminPage';
 
 
 export default function App() {
@@ -41,8 +42,9 @@ export default function App() {
                   <Route path="/"        element={<HomePage />}    />
                   <Route path="/urunler" element={<ProductsPage />} />
                   <Route path="/sepet"   element={<CartPage />}    />
-                   <Route path="/chat"    element={<ChatPage />}    />
+                  <Route path="/chat"    element={<ChatPage />}    />
                   <Route path="/profil"  element={<ProfilePage />} />
+                  <Route path="/admin"   element={<AdminPage />}    />
                   <Route path="/urun/:id" element={<ProductDetailPage />} />
                   <Route path="*"        element={<Navigate to="/" replace />} />
                 </Routes>

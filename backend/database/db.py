@@ -221,6 +221,17 @@ async def init_db() -> None:
                        WHERE ad = ?""",
                     (item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[0])
                 )
+        # Ensure default admin exists
+        async with db.execute("SELECT id FROM kullanicilar WHERE kullanici_adi = 'admin'") as cur:
+            admin_exists = await cur.fetchone()
+        if not admin_exists:
+            from services.auth_service import sifre_hashle
+            admin_sifre = sifre_hashle("admin123")
+            await db.execute(
+                """INSERT INTO kullanicilar (kullanici_adi, email, sifre_hash, tip, ad_soyad, kvkk_onay)
+                   VALUES (?,?,?,?,?,?)""",
+                ("admin", "admin@cuzdandostu.com", admin_sifre, "admin", "Sistem Yöneticisi", 1)
+            )
         await db.commit()
     logger.info("Veritabanı başarıyla başlatıldı: %s", DB_PATH)
 

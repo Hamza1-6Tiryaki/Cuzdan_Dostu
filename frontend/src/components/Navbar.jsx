@@ -18,6 +18,7 @@ const NAV_LINKS = [
   { to: '/sepet',     icon: ShoppingCart,   label: 'Sepet'      },
   { to: '/profil',    icon: User,           label: 'Profil'     },
   { to: '/chat',      icon: MessageCircle,  label: 'AI Asistan' },
+  { to: '/admin',     icon: Shield,         label: 'Yönetim'    },
 ];
 
 export default function Navbar() {
@@ -28,12 +29,20 @@ export default function Navbar() {
   const cartCount = cart.reduce((s, u) => s + u.adet, 0);
 
   const sirketMi = kullanici?.tip === 'sirket';
+  const adminMi  = kullanici?.tip === 'admin';
+  
   const visibleLinks = NAV_LINKS.filter(l => {
+    if (l.to === '/admin') {
+      return adminMi;
+    }
     if (!kullanici) {
       return l.to !== '/sepet';
     }
     if (sirketMi) {
       return l.to !== '/sepet' && l.to !== '/urunler';
+    }
+    if (adminMi) {
+      return l.to !== '/sepet' && l.to !== '/profil';
     }
     return true;
   });

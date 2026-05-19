@@ -101,4 +101,19 @@ export const aiApi = {
   sepetAnaliz: (d) => api.post('/api/sepet/analiz', d).then(r => r.data),
 };
 
+// ── Admin ────────────────────────────────────────────────────────────────────
+export const adminApi = {
+  stats:               () => api.get('/api/admin/stats').then(r => r.data),
+  users:               () => api.get('/api/admin/users').then(r => r.data),
+  toggleUserStatus:    (id) => api.put(`/api/admin/users/${id}/status`).then(r => r.data),
+  deleteUser:          (id) => api.delete(`/api/admin/users/${id}`).then(r => r.data),
+  products:            () => api.get('/api/admin/products').then(r => r.data),
+  toggleProductStock:  (id) => api.put(`/api/admin/products/${id}/stok`).then(r => r.data),
+  deleteProduct:       (id) => api.delete(`/api/admin/products/${id}`).then(r => r.data),
+  orders:              () => api.get('/api/admin/orders').then(r => r.data),
+  updateOrderStatus:   (id, durum) => api.put(`/api/admin/orders/${id}/durum`, { durum }).then(r => r.data),
+  coupons:             () => api.get('/api/admin/coupons').then(r => r.data),
+  deleteCoupon:        (id) => api.delete(`/api/admin/coupons/${id}`).then(r => r.data),
+};
+
 export default api;

@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv(Path(__file__).parent / ".env")
 
 from database import init_db
-from routers  import auth_router, products_router, budget_router
+from routers  import auth_router, products_router, budget_router, admin_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("cuzdan")
@@ -79,6 +79,7 @@ async def permission_error_handler(request: Request, exc: PermissionError):
 app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(budget_router)
+app.include_router(admin_router)
 
 @app.get("/")
 async def root():

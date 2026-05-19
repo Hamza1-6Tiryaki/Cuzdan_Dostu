@@ -148,8 +148,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) { navigate('/giris'); return; }
+    if (kullanici?.tip === 'admin') {
+      navigate('/admin');
+      return;
+    }
     loadData();
-  }, [token, budget, sirketMi]);
+  }, [token, budget, sirketMi, kullanici]);
 
   const handleBudceSave = async () => {
     try {

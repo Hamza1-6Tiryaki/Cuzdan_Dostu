@@ -17,6 +17,7 @@ import os
 class KullaniciTipi(str, Enum):
     MUSTERI = "musteri"
     SIRKET  = "sirket"
+    ADMIN   = "admin"
 
 class Cinsiyet(str, Enum):
     ERKEK  = "erkek"
