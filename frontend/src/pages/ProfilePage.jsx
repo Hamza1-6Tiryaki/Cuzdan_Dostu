@@ -784,14 +784,29 @@ export default function ProfilePage() {
                           ) : <p className="text-gray-500 text-sm">Bu ay henüz alışveriş yapılmadı.</p>}
                         </div>
                         {ayRapor.kategori_dagilimi?.length > 0 && (
-                          <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={ayRapor.kategori_dagilimi.slice(0, 5)}>
-                              <XAxis dataKey="kategori" tick={{ fontSize: 10, fill: '#6b7280' }} />
-                              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
-                              <Tooltip contentStyle={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} formatter={v => `₺${v?.toLocaleString('tr-TR')}`} />
-                              <Bar dataKey="toplam" fill="#1a9464" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
+                          <div className="flex flex-col items-center justify-center">
+                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2 self-start">Görsel Dağılım</p>
+                            <ResponsiveContainer width="100%" height={180}>
+                              <PieChart>
+                                <Pie
+                                  data={ayRapor.kategori_dagilimi}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={50}
+                                  outerRadius={70}
+                                  paddingAngle={3}
+                                  dataKey="toplam"
+                                  nameKey="kategori"
+                                >
+                                  {ayRapor.kategori_dagilimi.map((entry, index) => {
+                                    const KATEGORI_RENKLERI = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                                    return <Cell key={`cell-${index}`} fill={KATEGORI_RENKLERI[index % KATEGORI_RENKLERI.length]} />;
+                                  })}
+                                </Pie>
+                                <Tooltip contentStyle={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} formatter={v => `₺${v?.toLocaleString('tr-TR')}`} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
                         )}
                       </div>
                     ) : <p className="text-gray-500 text-sm">Bu ay rapor verisi yok.</p>}

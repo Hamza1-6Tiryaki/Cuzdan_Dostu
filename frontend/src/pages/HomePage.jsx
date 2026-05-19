@@ -10,6 +10,7 @@ import { budgetApi, productApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import ProductCard from '../components/ProductCard';
 import toast from 'react-hot-toast';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
 const DURUM_RENK = {
   beklemede: 'badge-yellow', onaylandi: 'badge-blue',
@@ -65,6 +66,7 @@ export default function HomePage() {
   const [gecmis,     setGecmis]     = useState([]);
   const [oneriler,   setOneriler]   = useState([]);
   const [sirketUrunler, setSirketUrunler] = useState([]);
+  const [ayRapor,    setAyRapor]    = useState(null);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
@@ -78,15 +80,18 @@ export default function HomePage() {
           if (b.status === 'fulfilled' && b.value) setBudget(b.value);
           if (u.status === 'fulfilled' && u.value) setSirketUrunler(u.value.urunler || []);
         } else {
-          const [b, s, f, g, o] = await Promise.allSettled([
+          const bugun = new Date();
+          const [b, s, f, g, o, r] = await Promise.allSettled([
             budgetApi.getir(), budgetApi.siparisler(),
             productApi.favoriler(), productApi.gecmis(), budgetApi.oneriler(),
+            budgetApi.aylikRapor(bugun.getFullYear(), bugun.getMonth() + 1),
           ]);
           if (b.status === 'fulfilled' && b.value) setBudget(b.value);
           if (s.status === 'fulfilled') setSiparisler(s.value.siparisler || []);
           if (f.status === 'fulfilled') setFavoriler(f.value.favoriler || []);
           if (g.status === 'fulfilled') setGecmis(g.value.gecmis || []);
           if (o.status === 'fulfilled') setOneriler(o.value.oneriler || []);
+          if (r.status === 'fulfilled') setAyRapor(r.value);
         }
       } catch {}
       finally { setLoading(false); }
@@ -278,19 +283,97 @@ export default function HomePage() {
         </motion.div>
       )}
 
-      {/* Siparişler */}
-      {siparisler.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Package size={20} className="text-brand-400"/> Siparişlerim
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {siparisler.slice(0,6).map(s => <SiparisDurumKarti key={s.id} siparis={s}/>)}
-          </div>
-        </section>
-      )}
+      {/* Siparişler ve Harcama Özeti Widget Grid'i */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sol Sütun: Siparişler */}
+        <div className="lg:col-span-2">
+          <section className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Package size={20} className="text-brand-400"/> Siparişlerim
+              </h2>
+            </div>
+            {siparisler.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                {siparisler.slice(0, 4).map(s => <SiparisDurumKarti key={s.id} siparis={s}/>)}
+              </div>
+            ) : (
+              <div className="glass p-8 rounded-2xl flex flex-col items-center justify-center text-center flex-1 min-h-[200px]">
+                <Package className="text-gray-600 mb-2" size={32} />
+                <h4 className="font-bold text-gray-300">Henüz Sipariş Yok</h4>
+                <p className="text-xs text-gray-500 max-w-[240px] mt-1">Verdiğiniz siparişler burada durumlarıyla listelenecektir.</p>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Sağ Sütun: Harcama Özeti (Pie Chart) */}
+        <div className="glass-strong p-6 rounded-2xl flex flex-col justify-between min-h-[300px]">
+          {(() => {
+            const KATEGORI_RENKLERI = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+            const hasData = ayRapor && ayRapor.kategori_dagilimi?.length > 0;
+            
+            return hasData ? (
+              <div className="flex flex-col h-full justify-between">
+                <div>
+                  <h3 className="text-lg font-bold flex items-center gap-2 mb-1">
+                    <TrendingUp size={18} className="text-accent-sky" /> Harcama Özeti
+                  </h3>
+                  <p className="text-xs text-gray-500">Bu ayki harcamalarınızın kategorilere göre dağılımı.</p>
+                </div>
+                
+                <div className="flex-1 flex items-center justify-center my-2">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie
+                        data={ayRapor.kategori_dagilimi}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={3}
+                        dataKey="toplam"
+                        nameKey="kategori"
+                      >
+                        {ayRapor.kategori_dagilimi.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={KATEGORI_RENKLERI[index % KATEGORI_RENKLERI.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v) => `₺${v?.toLocaleString('tr-TR')}`}
+                        contentStyle={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  {ayRapor.kategori_dagilimi.slice(0, 3).map((item, idx) => (
+                    <div key={item.kategori} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: KATEGORI_RENKLERI[idx % KATEGORI_RENKLERI.length] }} />
+                        <span className="text-gray-300 font-medium capitalize">{item.kategori}</span>
+                      </div>
+                      <span className="text-gray-400 font-semibold">₺{item.toplam?.toLocaleString('tr-TR')}</span>
+                    </div>
+                  ))}
+                  {ayRapor.kategori_dagilimi.length > 3 && (
+                    <div className="text-[10px] text-gray-500 text-center pt-1 font-medium">
+                      + {ayRapor.kategori_dagilimi.length - 3} kategori daha var
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center p-6 h-full min-h-[220px]">
+                <Wallet className="text-gray-600 mb-2" size={32} />
+                <h4 className="font-bold text-gray-300">Harcama Verisi Yok</h4>
+                <p className="text-xs text-gray-500 max-w-[200px] mt-1">Bu ay henüz bir alışveriş kaydınız bulunmuyor.</p>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
 
       {/* Favoriler */}
       {favoriler.length > 0 && (
