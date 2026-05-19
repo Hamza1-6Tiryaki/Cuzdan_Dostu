@@ -70,6 +70,7 @@ export const productApi = {
   // Şirket Metodları
   sirketUrunleri: ()   => api.get('/api/urunler/sirket').then(r => r.data),
   sirketUrunEkle: (d)  => api.post('/api/urunler', d).then(r => r.data),
+  sirketUrunGuncelle: (id, d) => api.put(`/api/urunler/${id}`, d).then(r => r.data),
   sirketUrunSil:  (id) => api.delete(`/api/urunler/${id}`).then(r => r.data),
   fiyatAnaliz:    (d)  => api.post('/api/urun/fiyat-analiz', d).then(r => r.data),
   stokBildir:     (id) => api.post(`/api/urunler/${id}/bildirim`).then(r => r.data),

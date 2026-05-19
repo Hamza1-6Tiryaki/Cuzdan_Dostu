@@ -303,6 +303,38 @@ async def urun_goruntule(
     return {"ok": True}
 
 
+@router.put("/{urun_id}")
+async def urun_guncelle(
+    urun_id: int,
+    istek: UrunEkle,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    if not credentials:
+        raise HTTPException(401, "Token gerekli.")
+    k = await mevcut_kullanici(credentials.credentials, db)
+    if k["tip"] != "sirket":
+        raise HTTPException(403, "Sadece şirket hesapları ürün güncelleyebilir.")
+
+    async with db.execute("SELECT sirket_id FROM urunler WHERE id = ?", (urun_id,)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Ürün bulunamadı.")
+    if row["sirket_id"] != k["id"]:
+        raise HTTPException(403, "Bu ürünü güncelleme yetkiniz yok.")
+
+    marka_val = istek.marka or k["kurum_adi"] or "Şirketim"
+    site_val = istek.site or "Trendyol"
+
+    await db.execute(
+        """UPDATE urunler SET ad=?, kategori=?, fiyat=?, marka=?, site=?, resim_url=?, aciklama=?
+           WHERE id=?""",
+        (istek.ad, istek.kategori, istek.fiyat, marka_val, site_val, istek.resim_url, istek.aciklama, urun_id)
+    )
+    await db.commit()
+    return {"mesaj": "Ürün başarıyla güncellendi! ✅"}
+
+
 @router.delete("/{urun_id}")
 async def urun_sil(
     urun_id: int,

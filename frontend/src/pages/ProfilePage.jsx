@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   User, Wallet, BarChart2, Heart, Tag, LogOut, ChevronRight,
   TrendingUp, TrendingDown, Calendar, Package, Save, Edit2, X,
-  Plus, Zap, Percent, ShoppingBag, AlertCircle, Trash2, ShoppingCart
+  Plus, Zap, Percent, ShoppingBag, AlertCircle, Trash2, ShoppingCart, Pencil
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { budgetApi, productApi } from '../services/api';
@@ -92,6 +92,13 @@ export default function ProfilePage() {
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [couponForm, setCouponForm] = useState({
     kod: '', indirim_yuzde: '', gecerlilik: ''
+  });
+
+  // Şirket: Ürün düzenleme state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUrun, setEditUrun] = useState(null);
+  const [editForm, setEditForm] = useState({
+    ad: '', kategori: 'Giyim', fiyat: '', maliyet: '', site: 'Trendyol', resim_url: '', aciklama: ''
   });
   
   // Şifre güncelleme state
@@ -306,6 +313,48 @@ export default function ProfilePage() {
       setSirketUrunler(f.urunler || []);
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ürün silinirken bir hata oluştu.');
+    }
+  };
+
+  // Şirket: Ürün Düzenle — modal aç
+  const handleUrunDuzenleAc = (urun, e) => {
+    e.stopPropagation();
+    setEditUrun(urun);
+    setEditForm({
+      ad: urun.ad || '',
+      kategori: urun.kategori || 'Giyim',
+      fiyat: urun.fiyat || '',
+      maliyet: '',
+      site: urun.site || 'Trendyol',
+      resim_url: urun.resim_url || '',
+      aciklama: urun.aciklama || '',
+    });
+    setShowEditModal(true);
+  };
+
+  // Şirket: Ürün Güncelle — kaydet
+  const handleUrunGuncelle = async () => {
+    if (!editForm.ad || !editForm.fiyat) {
+      toast.error('Ürün adı ve fiyat zorunludur.');
+      return;
+    }
+    try {
+      await productApi.sirketUrunGuncelle(editUrun.id, {
+        ad: editForm.ad,
+        kategori: editForm.kategori,
+        fiyat: Number(editForm.fiyat),
+        marka: profil?.kurum_adi || 'Kendi Markam',
+        site: editForm.site,
+        resim_url: editForm.resim_url || null,
+        aciklama: editForm.aciklama,
+      });
+      toast.success('Ürün başarıyla güncellendi! ✅');
+      setShowEditModal(false);
+      setEditUrun(null);
+      const f = await productApi.sirketUrunleri();
+      setSirketUrunler(f.urunler || []);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ürün güncellenirken hata oluştu.');
     }
   };
 
@@ -916,13 +965,22 @@ export default function ProfilePage() {
                         <div key={urun.id} onClick={() => navigate(`/urun/${urun.id}`)} className="glass p-4 rounded-2xl flex flex-col justify-between h-full border border-white/8 relative overflow-hidden group cursor-pointer hover:border-brand-500/30 transition-all">
                           <div className="relative overflow-hidden h-36 bg-dark-700 rounded-xl mb-3">
                             <ProductImage src={urun.resim_url} alt={urun.ad} />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleUrunSil(urun.id); }}
-                              className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center bg-red-600/95 text-white hover:bg-red-700 transition-all shadow-md z-10 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                              title="Ürünü Sil"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all z-10">
+                              <button
+                                onClick={(e) => handleUrunDuzenleAc(urun, e)}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-600/95 text-white hover:bg-brand-700 transition-all shadow-md"
+                                title="Ürünü Düzenle"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleUrunSil(urun.id); }}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-600/95 text-white hover:bg-red-700 transition-all shadow-md"
+                                title="Ürünü Sil"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </div>
                           <div className="flex-1">
                             <span className="text-[10px] bg-brand-500/10 text-brand-400 py-0.5 px-2 rounded-full font-bold uppercase">{urun.kategori}</span>
@@ -1050,6 +1108,75 @@ export default function ProfilePage() {
                           <button onClick={handleUrunEkle} disabled={!analizSonuc}
                             className={`flex-1 flex items-center justify-center gap-2 ${analizSonuc ? 'btn-primary' : 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/5 py-2.5 px-4 rounded-xl'}`}>
                             <Save size={16} /> Ürünü Kaydet & Yayınla
+                          </button>
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
+
+                  {/* Ürün Düzenleme Modalı */}
+                  {showEditModal && editUrun && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/70 backdrop-blur-md">
+                      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className="glass-strong w-full max-w-2xl rounded-3xl p-6 shadow-brand border border-white/10 overflow-y-auto max-h-[90vh] space-y-4">
+                        <div className="flex justify-between items-center pb-2 border-b border-white/6">
+                          <h3 className="text-lg font-bold flex items-center gap-2 text-gradient-brand">
+                            <Pencil size={20} className="text-brand-400" /> Ürünü Düzenle
+                          </h3>
+                          <button onClick={() => { setShowEditModal(false); setEditUrun(null); }} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="input-label">Ürün Adı</label>
+                            <input className="input-field" type="text" placeholder="Ürün adı"
+                              value={editForm.ad} onChange={e => setEditForm(f => ({ ...f, ad: e.target.value }))} />
+                          </div>
+                          <div>
+                            <label className="input-label">Kategori</label>
+                            <select className="input-field bg-dark-900 text-gray-100"
+                              value={editForm.kategori} onChange={e => setEditForm(f => ({ ...f, kategori: e.target.value }))}>
+                              {['Giyim', 'Elektronik', 'Kozmetik', 'Ev', 'Kitap', 'Gıda', 'Spor', 'Diğer'].map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="input-label">Satış Fiyatı (₺)</label>
+                            <input className="input-field" type="number" min="0"
+                              value={editForm.fiyat} onChange={e => setEditForm(f => ({ ...f, fiyat: e.target.value }))} />
+                          </div>
+                          <div>
+                            <label className="input-label">Platform (Yayınlama Kanalı)</label>
+                            <select className="input-field bg-dark-900 text-gray-100"
+                              value={editForm.site} onChange={e => setEditForm(f => ({ ...f, site: e.target.value }))}>
+                              {['Trendyol', 'Amazon', 'Hepsiburada', 'N11', 'Kendi Web Sitemiz'].map(st => (
+                                <option key={st} value={st}>{st}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="input-label">Ürün Görsel URL (İsteğe Bağlı)</label>
+                            <input className="input-field" type="text" placeholder="Görsel linki yapıştırın"
+                              value={editForm.resim_url} onChange={e => setEditForm(f => ({ ...f, resim_url: e.target.value }))} />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="input-label">Ürün Açıklaması</label>
+                            <textarea className="input-field min-h-[60px]" placeholder="Ürün özelliklerini ve detaylarını yazın"
+                              value={editForm.aciklama} onChange={e => setEditForm(f => ({ ...f, aciklama: e.target.value }))} />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                          <button onClick={() => { setShowEditModal(false); setEditUrun(null); }}
+                            className="btn-secondary flex-1 flex items-center justify-center gap-2">
+                            <X size={16} /> İptal
+                          </button>
+                          <button onClick={handleUrunGuncelle}
+                            className="btn-primary flex-1 flex items-center justify-center gap-2">
+                            <Save size={16} /> Değişiklikleri Kaydet
                           </button>
                         </div>
                       </motion.div>
