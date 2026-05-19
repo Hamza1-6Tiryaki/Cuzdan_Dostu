@@ -100,14 +100,17 @@ async def sirket_kayit(db: aiosqlite.Connection, istek: SirketKayitIstegi) -> di
         if await cur.fetchone():
             raise ValueError("Bu email veya kullanıcı adı zaten kayıtlı.")
 
+    telefon_hash = pii_hashle(istek.telefon) if istek.telefon else None
+
     await db.execute(
         """INSERT INTO kullanicilar
-           (kullanici_adi, email, sifre_hash, tip, kurum_adi, sirket_kategorisi, aciklama, kvkk_onay)
-           VALUES (?,?,?,?,?,?,?,?)""",
+           (kullanici_adi, email, sifre_hash, tip, kurum_adi, sirket_kategorisi, aciklama, telefon_hash, kvkk_onay)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
         (
             istek.kullanici_adi, istek.email,
             sifre_hashle(istek.sifre), "sirket",
-            istek.kurum_adi, istek.sirket_kategorisi, istek.aciklama, 1
+            istek.kurum_adi, istek.sirket_kategorisi, istek.aciklama,
+            telefon_hash, 1
         )
     )
     await db.commit()

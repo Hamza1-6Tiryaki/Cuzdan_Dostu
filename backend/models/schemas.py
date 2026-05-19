@@ -82,6 +82,7 @@ class SirketKayitIstegi(KayitIstegiBase):
     sifre:             str = Field(..., min_length=6)
     kurum_adi:         str = Field(..., min_length=2)
     sirket_kategorisi: str
+    telefon:           Optional[str] = None
     aciklama:          Optional[str] = None
 
 

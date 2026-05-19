@@ -46,6 +46,7 @@ export default function AuthPage() {
         await authApi.kayitSirket({
           kullanici_adi: form.kullanici_adi, email: form.email, sifre: form.sifre,
           kurum_adi: form.kurum_adi, sirket_kategorisi: form.sirket_kategorisi,
+          telefon: form.telefon || undefined,
           aciklama: form.aciklama || undefined, kvkk_onay: true,
         });
         toast.success('Şirket kaydı başarılı!'); setTab(TAB.GIRIS);
@@ -171,6 +172,14 @@ export default function AuthPage() {
                   {['Teknoloji','Perakende','Gıda','Sağlık','Eğitim','Finans','Diğer'].map(k=>
                     <option key={k} value={k}>{k}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="input-label">Telefon Numarası</label>
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input className="input-field pl-10" placeholder="05XX XXX XX XX"
+                    value={form.telefon} onChange={e=>upd('telefon',e.target.value)} required />
+                </div>
               </div>
               <div>
                 <label className="input-label">Şirket Açıklaması</label>
