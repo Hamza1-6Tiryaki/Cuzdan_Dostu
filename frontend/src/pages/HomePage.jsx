@@ -154,10 +154,19 @@ export default function HomePage() {
                 {label:'Aylık Sabit Maliyetler',val:budget.aylik_sabit_gider,color:'text-red-400'},
                 {label:'Hedef Kâr Marjı',val:budget.birikim_hedefi,color:'text-yellow-400'},
                 {label:'Bu Ay Harcanan',val:budget.harcanan_miktar || 0,color:'text-orange-400'},
-                {label:'Kullanılabilir Likidite',val:budget.kullanilabilir_butce,color:'text-accent-sky'},
-              ].map(({label,val,color})=>(
+                {
+                  label: budget.kullanilabilir_butce < 0 ? 'Net Sermaye Açığı (Borç)' : 'Kullanılabilir Likidite',
+                  val: budget.kullanilabilir_butce,
+                  color: budget.kullanilabilir_butce < 0 ? 'text-red-400' : 'text-accent-sky',
+                  isKullanilabilir: true
+                },
+              ].map(({label,val,color,isKullanilabilir})=>(
                 <div key={label} className="stat-card">
-                  <div className={`stat-value ${color}`}>₺{val?.toLocaleString('tr-TR')}</div>
+                  <div className={`stat-value ${color}`}>
+                    {isKullanilabilir && val < 0 
+                      ? `-₺${Math.abs(val)?.toLocaleString('tr-TR')}` 
+                      : `₺${val?.toLocaleString('tr-TR')}`}
+                  </div>
                   <div className="stat-label">{label}</div>
                 </div>
               ))}
@@ -227,7 +236,15 @@ export default function HomePage() {
         </h1>
         {budget && (
           <p className="text-gray-400 mt-1">
-            Kullanılabilir bütçen: <span className="text-brand-400 font-semibold">₺{budget.kullanilabilir_butce?.toLocaleString('tr-TR')}</span>
+            {budget.kullanilabilir_butce < 0 ? (
+              <>
+                Bütçe aşımın (Borcun): <span className="text-red-400 font-semibold">-₺{Math.abs(budget.kullanilabilir_butce)?.toLocaleString('tr-TR')}</span>
+              </>
+            ) : (
+              <>
+                Kullanılabilir bütçen: <span className="text-brand-400 font-semibold">₺{budget.kullanilabilir_butce?.toLocaleString('tr-TR')}</span>
+              </>
+            )}
           </p>
         )}
       </motion.div>
@@ -241,10 +258,19 @@ export default function HomePage() {
               {label:'Sabit Gider',val:budget.aylik_sabit_gider,color:'text-red-400'},
               {label:'Birikim',val:budget.birikim_hedefi,color:'text-yellow-400'},
               {label:'Bu Ay Harcanan',val:budget.harcanan_miktar || 0,color:'text-orange-400'},
-              {label:'Kullanılabilir',val:budget.kullanilabilir_butce,color:'text-accent-sky'},
-            ].map(({label,val,color})=>(
+              {
+                label: budget.kullanilabilir_butce < 0 ? 'Bütçe Aşımı (Borç)' : 'Kullanılabilir',
+                val: budget.kullanilabilir_butce,
+                color: budget.kullanilabilir_butce < 0 ? 'text-red-400' : 'text-accent-sky',
+                isKullanilabilir: true
+              },
+            ].map(({label,val,color,isKullanilabilir})=>(
               <div key={label} className="stat-card">
-                <div className={`stat-value ${color}`}>₺{val?.toLocaleString('tr-TR')}</div>
+                <div className={`stat-value ${color}`}>
+                  {isKullanilabilir && val < 0 
+                    ? `-₺${Math.abs(val)?.toLocaleString('tr-TR')}` 
+                    : `₺${val?.toLocaleString('tr-TR')}`}
+                </div>
                 <div className="stat-label">{label}</div>
               </div>
             ))}

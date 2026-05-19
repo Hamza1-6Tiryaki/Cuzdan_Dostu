@@ -397,13 +397,35 @@ export default function ProfilePage() {
                       { l: sirketMi ? 'Sabit Giderler' : 'Gider', v: budget.aylik_sabit_gider, c: 'text-red-400' },
                       { l: sirketMi ? 'Aylık Hedef Kâr' : 'Birikim', v: budget.birikim_hedefi, c: 'text-yellow-400' },
                       { l: sirketMi ? 'Bu Ay Harcanan' : 'Harcanan', v: budget.harcanan_miktar || 0, c: 'text-orange-400' },
-                      { l: sirketMi ? 'Net Çalışma Sermayesi' : 'Kullanılabilir', v: budget.kullanilabilir_butce, c: 'text-accent-sky', wide: true },
-                    ].map(({ l, v, c, wide }) => (
-                      <div key={l} className={`stat-card ${wide ? 'col-span-2 border border-accent-sky/20 bg-accent-sky/5' : ''}`}>
+                    ].map(({ l, v, c }) => (
+                      <div key={l} className="stat-card">
                         <div className={`stat-value text-xl ${c}`}>₺{v?.toLocaleString('tr-TR')}</div>
                         <div className="stat-label text-xs">{l}</div>
                       </div>
                     ))}
+                    
+                    {/* Kullanılabilir / Borç kartı */}
+                    {(() => {
+                      const isNegative = budget.kullanilabilir_butce < 0;
+                      const absVal = Math.abs(budget.kullanilabilir_butce);
+                      const displayVal = isNegative ? `-₺${absVal.toLocaleString('tr-TR')}` : `₺${absVal.toLocaleString('tr-TR')}`;
+                      const displayLabel = isNegative 
+                        ? (sirketMi ? 'Net Sermaye Açığı (Bu kadar borcunuz var)' : 'Bütçe Aşımı (Bu kadar borcunuz var)')
+                        : (sirketMi ? 'Net Çalışma Sermayesi (Bu kadar paranız var)' : 'Kullanılabilir (Bu kadar paranız var)');
+                      
+                      return (
+                        <div className={`stat-card col-span-2 border transition-all duration-300 ${
+                          isNegative 
+                            ? 'border-red-500/20 bg-red-500/5 shadow-lg shadow-red-500/5' 
+                            : 'border-accent-sky/20 bg-accent-sky/5 shadow-lg shadow-accent-sky/5'
+                        }`}>
+                          <div className={`stat-value text-xl ${isNegative ? 'text-red-400' : 'text-accent-sky'}`}>
+                            {displayVal}
+                          </div>
+                          <div className="stat-label text-xs">{displayLabel}</div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   {/* Sermaye / Gelir Dağılım Grafiği */}
