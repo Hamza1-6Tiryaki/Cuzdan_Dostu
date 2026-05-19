@@ -172,6 +172,42 @@ async def siparis_olustur(
     return {"siparis_id": siparis_id, "toplam_tutar": toplam}
 
 
+@router.get("/sirket/siparisler")
+async def sirket_siparisleri(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    k = await _auth(credentials, db)
+    if k["tip"] != "sirket":
+        raise HTTPException(403, "Sadece şirket hesapları bu verileri görebilir.")
+        
+    query = """
+        SELECT 
+            s.id as siparis_id, 
+            s.durum, 
+            s.olusturuldu, 
+            sk.adet, 
+            sk.birim_fiyat, 
+            u.id as urun_id,
+            u.ad as urun_ad, 
+            u.marka as urun_marka, 
+            u.resim_url as urun_resim_url,
+            u.kategori as urun_kategori,
+            m.kullanici_adi as musteri_adi, 
+            m.email as musteri_email
+        FROM siparis_kalemleri sk
+        JOIN siparisler s ON sk.siparis_id = s.id
+        JOIN urunler u ON sk.urun_id = u.id
+        JOIN kullanicilar m ON s.kullanici_id = m.id
+        WHERE u.sirket_id = ?
+        ORDER BY s.olusturuldu DESC
+    """
+    async with db.execute(query, (k["id"],)) as cur:
+        rows = await cur.fetchall()
+        
+    return {"siparisler": [dict(r) for r in rows]}
+
+
 # ── Raporlar ─────────────────────────────────────────────────────────────────
 
 @router.get("/rapor/aylik/{yil}/{ay}")

@@ -93,6 +93,7 @@ export const budgetApi = {
   
   // Şirket Kupon Ekleme
   kuponEkle:  (d)      => api.post('/api/kuponlar', d).then(r => r.data),
+  sirketSiparisleri: () => api.get('/api/sirket/siparisler').then(r => r.data),
 };
 
 // ── AI ───────────────────────────────────────────────────────────────────────

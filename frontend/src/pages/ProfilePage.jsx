@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   User, Wallet, BarChart2, Heart, Tag, LogOut, ChevronRight,
   TrendingUp, TrendingDown, Calendar, Package, Save, Edit2, X,
-  Plus, Zap, Percent, ShoppingBag, AlertCircle, Trash2
+  Plus, Zap, Percent, ShoppingBag, AlertCircle, Trash2, ShoppingCart
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { budgetApi, productApi } from '../services/api';
@@ -58,12 +58,16 @@ export default function ProfilePage() {
     { id: 'favori', label: sirketMi ? 'Ürünlerim' : 'Favoriler', icon: sirketMi ? Package : Heart },
     { id: 'kupon', label: 'Kuponlar', icon: Tag },
   ];
+  if (sirketMi) {
+    TABS.push({ id: 'sirket_siparisler', label: 'Gelen Siparişler', icon: ShoppingCart });
+  }
 
   const [tab, setTab] = useState('butce');
   const [profil, setProfil] = useState(null);
   const [favoriler, setFav] = useState([]);
   const [kuponlar, setKup] = useState([]);
   const [sirketUrunler, setSirketUrunler] = useState([]);
+  const [sirketSiparisler, setSirketSiparisler] = useState([]);
   const [ayRapor, setAy] = useState(null);
   const [yilRapor, setYil] = useState(null);
   const [loading, setL] = useState(false);
@@ -102,8 +106,17 @@ export default function ProfilePage() {
         budgetApi.aylikRapor(bugun.getFullYear(), bugun.getMonth() + 1),
         budgetApi.yillikRapor(bugun.getFullYear()),
       ];
+      if (sirketMi) {
+        endpoints.push(budgetApi.sirketSiparisleri());
+      }
       
-      const [p, f, k, ay, yil] = await Promise.allSettled(endpoints);
+      const results = await Promise.allSettled(endpoints);
+      
+      const p = results[0];
+      const f = results[1];
+      const k = results[2];
+      const ay = results[3];
+      const yil = results[4];
       
       if (p.status === 'fulfilled') {
         setProfil(p.value);
@@ -131,6 +144,10 @@ export default function ProfilePage() {
       if (k.status === 'fulfilled') setKup(k.value.kuponlar || []);
       if (ay.status === 'fulfilled') setAy(ay.value);
       if (yil.status === 'fulfilled') setYil(yil.value);
+      
+      if (sirketMi && results[5]?.status === 'fulfilled') {
+        setSirketSiparisler(results[5].value.siparisler || []);
+      }
       
       if (budget) {
         setBF({
@@ -1035,6 +1052,66 @@ export default function ProfilePage() {
                       <Save size={16} /> Kampanyayı Başlat & Yayınla
                     </button>
                   </motion.div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB 6: GELEN SİPARİŞLER (ŞİRKET ÖZEL) ────────────────────────── */}
+          {tab === 'sirket_siparisler' && sirketMi && (
+            <div className="glass p-6 rounded-3xl border border-white/5 space-y-4">
+              <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                <ShoppingCart size={18} className="text-brand-400" /> Ürünlerinize Gelen Siparişler
+              </h3>
+
+              {sirketSiparisler.length > 0 ? (
+                <div className="space-y-4">
+                  {sirketSiparisler.map((item, idx) => {
+                    let statusBadge = 'badge-yellow';
+                    if (item.durum === 'teslim_edildi' || item.durum === 'onaylandi') statusBadge = 'badge-green';
+                    if (item.durum === 'iptal') statusBadge = 'badge-red';
+                    
+                    return (
+                      <div key={idx} className="glass p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-brand-500/20 transition-all">
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={item.urun_resim_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
+                            alt={item.urun_ad} 
+                            className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-dark-700 border border-white/5"
+                            onError={e => { e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'; }}
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-sm">Sipariş #{item.siparis_id}</span>
+                              <span className="text-xs text-gray-500">· {item.urun_marka}</span>
+                            </div>
+                            <h4 className="font-semibold text-gray-200 text-sm mt-0.5 line-clamp-1">{item.urun_ad}</h4>
+                            <p className="text-[11px] text-gray-400 mt-1">
+                              Alıcı: <strong className="text-white">{item.musteri_adi}</strong> ({item.musteri_email})
+                            </p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">
+                              Tarih: {new Date(item.olusturuldu).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:items-end justify-between self-stretch sm:self-auto gap-2">
+                          <div className="text-right">
+                            <p className="text-xs text-gray-400">Adet: <strong className="text-white">{item.adet}</strong></p>
+                            <p className="text-sm font-bold text-brand-400 mt-0.5">₺{(item.birim_fiyat * item.adet).toLocaleString('tr-TR')}</p>
+                          </div>
+                          <span className={`${statusBadge} uppercase text-[9px] font-bold self-start sm:self-auto`}>
+                            {item.durum}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="glass p-12 rounded-2xl text-center text-gray-500">
+                  <ShoppingCart size={40} className="mx-auto mb-3 text-gray-600" />
+                  <p>Henüz gelen bir sipariş bulunmuyor.</p>
                 </div>
               )}
             </div>
