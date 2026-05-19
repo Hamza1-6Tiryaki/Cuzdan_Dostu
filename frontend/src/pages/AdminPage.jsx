@@ -1,14 +1,12 @@
 /**
  * pages/AdminPage.jsx — CüzdanDostu Sistem Yönetim Paneli (Admin Panel)
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Shield, Users, ShoppingBag, CreditCard, Tag, BarChart3, 
-  Trash2, ToggleLeft, ToggleRight, CheckCircle, Clock, 
-  Truck, CheckSquare, XCircle, Search, AlertCircle, RefreshCw,
-  Package, Bell
+  Trash2, ToggleLeft, ToggleRight, Clock, 
+  Search, RefreshCw, Package, Bell
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { adminApi } from '../services/api';
@@ -71,15 +69,7 @@ export default function AdminPage() {
     }
   }, [token, kullanici, adminMi, navigate]);
 
-  // Tab değişiminde veri çekme tetiklemesi
-  useEffect(() => {
-    if (adminMi) {
-      setSearchTerm('');
-      loadTabData();
-    }
-  }, [activeTab, adminMi]);
-
-  const loadTabData = async () => {
+  const loadTabData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'dashboard') {
@@ -107,7 +97,15 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  // Tab değişiminde veri çekme tetiklemesi
+  useEffect(() => {
+    if (adminMi) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadTabData();
+    }
+  }, [activeTab, adminMi, loadTabData]);
 
   // ─── Kullanıcı İşlemleri ──────────────────────────────────────────────────
   const handleToggleUserStatus = async (userId) => {
@@ -218,7 +216,10 @@ export default function AdminPage() {
               return (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => {
+                    setSearchTerm('');
+                    setActiveTab(id);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200
                     ${active 
                       ? 'text-brand-400 bg-brand-500/10 border border-brand-500/20' 
@@ -568,7 +569,7 @@ export default function AdminPage() {
                               <select 
                                 value={order.durum}
                                 onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                                className="bg-dark-800 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-brand-500"
+                                className={`bg-dark-800 border border-white/10 font-bold rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-brand-500 ${statusColor}`}
                               >
                                 <option value="beklemede">Beklemede 🕒</option>
                                 <option value="onaylandi">Onaylandı ✓</option>
@@ -705,7 +706,7 @@ export default function AdminPage() {
                                   // Refresh data
                                   const list = await adminApi.getBildirimListesi();
                                   setNotifications(list);
-                                } catch (err) {
+                                } catch {
                                   toast.error('İşlem gerçekleştirilemedi.');
                                 }
                               }}

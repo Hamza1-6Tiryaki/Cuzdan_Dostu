@@ -3,10 +3,10 @@
  */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
 import {
-  ChevronLeft, Star, ShoppingCart, Package, ExternalLink,
-  ShieldCheck, TrendingUp, Wallet, Percent, AlertTriangle, Info
+  ChevronLeft, Star, ShoppingCart, Package,
+  ShieldCheck, TrendingUp, Wallet, Percent, Info
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { productApi } from '../services/api';
@@ -20,7 +20,9 @@ export default function ProductDetailPage() {
   const [urun, setUrun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imgErr, setImgErr] = useState(false);
-  const [subscribed, setSubscribed] = useState(false);
+  const [justSubscribed, setJustSubscribed] = useState(false);
+
+  const isSubscribed = justSubscribed || (urun?.bildirim_listesi?.split(',').map(x => x.trim()).includes(String(kullanici?.id)));
 
   useEffect(() => {
     const loadUrun = async () => {
@@ -32,7 +34,7 @@ export default function ProductDetailPage() {
         if (token) {
           productApi.goruntule(id).catch(() => {});
         }
-      } catch (err) {
+      } catch {
         toast.error('Ürün yüklenirken bir hata oluştu.');
         navigate('/urunler');
       } finally {
@@ -42,14 +44,7 @@ export default function ProductDetailPage() {
     loadUrun();
   }, [id, token, navigate]);
 
-  useEffect(() => {
-    if (urun && kullanici && urun.bildirim_listesi) {
-      const ids = urun.bildirim_listesi.split(',').map(x => x.trim());
-      if (ids.includes(String(kullanici.id))) {
-        setSubscribed(true);
-      }
-    }
-  }, [urun, kullanici]);
+
 
   const handleSepeteEkle = () => {
     if (!token || !kullanici) {
@@ -78,9 +73,9 @@ export default function ProductDetailPage() {
     }
     try {
       const res = await productApi.stokBildir(urun.id);
-      setSubscribed(true);
+      setJustSubscribed(true);
       toast.success(res.mesaj || 'Stok bildirim listesine kaydedildiniz. 🔔');
-    } catch (err) {
+    } catch {
       toast.error('Bildirim kaydedilemedi.');
     }
   };
@@ -243,14 +238,14 @@ export default function ProductDetailPage() {
               ) : (
                 <button
                   onClick={handleStokHaberVer}
-                  disabled={subscribed}
+                  disabled={isSubscribed}
                   className={`w-full md:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${
-                    subscribed 
+                    isSubscribed 
                       ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 cursor-default' 
                       : 'bg-yellow-500 hover:bg-yellow-600 text-dark-950 shadow-lg shadow-yellow-500/10'
                   }`}
                 >
-                  <Info size={18} /> {subscribed ? 'Bildirim Listesindesiniz 🔔' : 'Stok Gelince Haber Ver'}
+                  <Info size={18} /> {isSubscribed ? 'Bildirim Listesindesiniz 🔔' : 'Stok Gelince Haber Ver'}
                 </button>
               )}
             </div>

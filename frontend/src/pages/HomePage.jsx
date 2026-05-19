@@ -60,6 +60,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { token, kullanici, budget, setBudget } = useStore();
   const sirketMi = kullanici?.tip === 'sirket';
+  const adminMi = kullanici?.tip === 'admin';
 
   const [siparisler, setSiparisler] = useState([]);
   const [favoriler,  setFavoriler]  = useState([]);
@@ -79,7 +80,7 @@ export default function HomePage() {
           ]);
           if (b.status === 'fulfilled' && b.value) setBudget(b.value);
           if (u.status === 'fulfilled' && u.value) setSirketUrunler(u.value.urunler || []);
-        } else {
+        } else if (!adminMi) {
           const bugun = new Date();
           const [b, s, f, g, o, r] = await Promise.allSettled([
             budgetApi.getir(), budgetApi.siparisler(),
@@ -284,9 +285,10 @@ export default function HomePage() {
       )}
 
       {/* Siparişler ve Harcama Özeti Widget Grid'i */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sol Sütun: Siparişler */}
-        <div className="lg:col-span-2">
+      {!adminMi && !sirketMi && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sol Sütun: Siparişler */}
+          <div className="lg:col-span-2">
           <section className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
@@ -374,6 +376,7 @@ export default function HomePage() {
           })()}
         </div>
       </div>
+      )}
 
       {/* Favoriler */}
       {favoriler.length > 0 && (
@@ -406,14 +409,16 @@ export default function HomePage() {
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {gecmis.slice(0,8).map(u => (
-              <div key={u.id} className="glass flex-shrink-0 w-44 p-3 rounded-xl">
+              <Link to={`/urun/${u.id}`} key={u.id} className="glass flex-shrink-0 w-44 p-3 rounded-xl hover:bg-white/5 hover:border-brand-500/30 transition-all duration-300 block cursor-pointer group">
                 <div className="w-full h-28 mb-2 overflow-hidden rounded-lg">
-                  <ProductImage src={u.resim_url} alt={u.ad} />
+                  <div className="w-full h-full group-hover:scale-110 transition-transform duration-500">
+                    <ProductImage src={u.resim_url} alt={u.ad} />
+                  </div>
                 </div>
-                <p className="text-xs font-medium text-gray-200 line-clamp-2">{u.ad}</p>
+                <p className="text-xs font-medium text-gray-200 line-clamp-2 group-hover:text-brand-400 transition-colors">{u.ad}</p>
                 <p className="text-xs text-brand-400 font-bold mt-1">₺{u.fiyat?.toLocaleString('tr-TR')}</p>
                 <p className="text-[10px] text-gray-600 mt-0.5">{u.goruntuleme_sayisi}x görüntülendi</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
