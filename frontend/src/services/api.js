@@ -40,11 +40,8 @@ api.interceptors.response.use(
     if (import.meta.env.DEV) {
       console.error('api: response error', r?.status, err.config?.url, r?.headers, r?.data);
     }
-    if (r?.status === 401) {
+    if (r?.status === 401 || r?.status === 403) {
       useStore.getState().logout();
-      if (import.meta.env.DEV && import.meta.env.VITE_DEV_TOKEN) {
-        console.warn('Stale VITE_DEV_TOKEN detected. Cached auth state cleared and logged out. Please log in again.');
-      }
     }
     return Promise.reject(err);
   }

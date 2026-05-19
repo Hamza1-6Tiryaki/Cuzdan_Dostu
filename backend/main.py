@@ -40,14 +40,14 @@ app = FastAPI(
 )
 
 # CORS — React dev sunucusu
-raw_allowed = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+raw_allowed = os.getenv("ALLOWED_ORIGINS", "*")
 ALLOWED_ORIGINS = [o.strip() for o in raw_allowed.split(",") if o.strip()]
 
 # Geliştirme kolaylığı: environment ile tüm origin'leri açmak için
 # DEV_CORS_ALLOW_ALL=1 veya ALLOWED_ORIGINS='*' kullanın.
 allow_all = os.getenv("DEV_CORS_ALLOW_ALL", "0") == "1" or "*" in ALLOWED_ORIGINS
 if allow_all:
-    logger.warning("CORS: Tüm origin'lere izin veriliyor (geliştirme modu).")
+    logger.warning("CORS: Tüm origin'lere izin veriliyor.")
     cors_origins = ["*"]
     cors_allow_credentials = False
 else:
