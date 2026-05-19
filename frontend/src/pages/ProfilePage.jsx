@@ -105,6 +105,7 @@ export default function ProfilePage() {
         budgetApi.kuponlar(),
         budgetApi.aylikRapor(bugun.getFullYear(), bugun.getMonth() + 1),
         budgetApi.yillikRapor(bugun.getFullYear()),
+        budgetApi.getir(),
       ];
       if (sirketMi) {
         endpoints.push(budgetApi.sirketSiparisleri());
@@ -117,6 +118,7 @@ export default function ProfilePage() {
       const k = results[2];
       const ay = results[3];
       const yil = results[4];
+      const bObj = results[5];
       
       if (p.status === 'fulfilled') {
         setProfil(p.value);
@@ -145,16 +147,23 @@ export default function ProfilePage() {
       if (ay.status === 'fulfilled') setAy(ay.value);
       if (yil.status === 'fulfilled') setYil(yil.value);
       
-      if (sirketMi && results[5]?.status === 'fulfilled') {
-        setSirketSiparisler(results[5].value.siparisler || []);
-      }
-      
-      if (budget) {
+      if (bObj.status === 'fulfilled' && bObj.value) {
+        setBudget(bObj.value);
+        setBF({
+          aylik_gelir: bObj.value.aylik_gelir || '',
+          aylik_sabit_gider: bObj.value.aylik_sabit_gider || '',
+          birikim_hedefi: bObj.value.birikim_hedefi || '',
+        });
+      } else if (budget) {
         setBF({
           aylik_gelir: budget.aylik_gelir || '',
           aylik_sabit_gider: budget.aylik_sabit_gider || '',
           birikim_hedefi: budget.birikim_hedefi || '',
         });
+      }
+      
+      if (sirketMi && results[6]?.status === 'fulfilled') {
+        setSirketSiparisler(results[6].value.siparisler || []);
       }
     } catch (e) {
       console.error(e);
