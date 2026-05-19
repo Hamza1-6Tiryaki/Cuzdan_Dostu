@@ -111,6 +111,12 @@ CREATE TABLE IF NOT EXISTS kuponlar (
     gecerlilik  TEXT    NOT NULL DEFAULT (date('now', '+30 days')),
     kullanildi  INTEGER NOT NULL DEFAULT 0
 );
+
+-- AI Chat hız sınırı (multi-worker uyumlu)
+CREATE TABLE IF NOT EXISTS chat_rate_limit (
+    kullanici_id INTEGER PRIMARY KEY REFERENCES kullanicilar(id),
+    son_istek    REAL    NOT NULL DEFAULT 0
+);
 """
 
 MOCK_URUNLER = [
@@ -231,7 +237,16 @@ async def init_db() -> None:
             admin_exists = await cur.fetchone()
         if not admin_exists:
             from services.auth_service import sifre_hashle
-            admin_sifre = sifre_hashle(os.getenv("ADMIN_PASSWORD", "admin123"))
+            import secrets
+            env_pass = os.getenv("ADMIN_PASSWORD")
+            if not env_pass:
+                env_pass = secrets.token_urlsafe(12)
+                logger.warning("=" * 60)
+                logger.warning("UYARI: ADMIN_PASSWORD env degiskeni tanimli degil!")
+                logger.warning(f"Gecici admin sifresi otomatik olusturuldu: {env_pass}")
+                logger.warning("Guvenliginiz icin bu sifreyi kaydedin veya .env dosyasina ADMIN_PASSWORD ekleyin.")
+                logger.warning("=" * 60)
+            admin_sifre = sifre_hashle(env_pass)
             await db.execute(
                 """INSERT INTO kullanicilar (kullanici_adi, email, sifre_hash, tip, ad_soyad, kvkk_onay)
                    VALUES (?,?,?,?,?,?)""",

@@ -73,7 +73,7 @@ class BudgetService:
             aylik_gelir=gelir,
             aylik_sabit_gider=gider,
             birikim_hedefi=birikim,
-            kullanilabilir_butce=gelir - gider - harcanan,
+            kullanilabilir_butce=gelir - gider - birikim - harcanan,
             harcanan_miktar=harcanan,
         )
 

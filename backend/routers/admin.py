@@ -137,6 +137,17 @@ async def delete_user(
         await db.execute("DELETE FROM siparis_kalemleri WHERE siparis_id = ?", (oid,))
     await db.execute("DELETE FROM siparisler WHERE kullanici_id = ?", (user_id,))
     
+    # Eğer şirket ise, şirkete ait ürünleri ve ilişkilerini sil
+    if row["tip"] == "sirket":
+        async with db.execute("SELECT id FROM urunler WHERE sirket_id = ?", (user_id,)) as cur:
+            urun_rows = await cur.fetchall()
+        for u_row in urun_rows:
+            uid = u_row[0]
+            await db.execute("DELETE FROM siparis_kalemleri WHERE urun_id = ?", (uid,))
+            await db.execute("DELETE FROM gecmis WHERE urun_id = ?", (uid,))
+            await db.execute("DELETE FROM favoriler WHERE referans_id = ? AND tur = 'urun'", (uid,))
+        await db.execute("DELETE FROM urunler WHERE sirket_id = ?", (user_id,))
+    
     # Kullanıcıyı sil
     await db.execute("DELETE FROM kullanicilar WHERE id = ?", (user_id,))
     await db.commit()
@@ -205,6 +216,7 @@ async def delete_product(
 
     await db.execute("DELETE FROM siparis_kalemleri WHERE urun_id = ?", (product_id,))
     await db.execute("DELETE FROM gecmis WHERE urun_id = ?", (product_id,))
+    await db.execute("DELETE FROM favoriler WHERE referans_id = ? AND tur = 'urun'", (product_id,))
     await db.execute("DELETE FROM urunler WHERE id = ?", (product_id,))
     await db.commit()
     return {"mesaj": "Ürün başarıyla silindi."}

@@ -276,10 +276,6 @@ class KuponKullan(BaseModel):
 
 def pii_hashle(deger: str) -> str:
     """Hassas veriyi HMAC-SHA256 ve salt ile hash'ler — KVKK uyumlu."""
-    import sys
-    pii_salt = os.getenv("PII_SALT")
-    if not pii_salt:
-        print("WARNING: PII_SALT environment variable is not set! Using default salt which is insecure for production.", file=sys.stderr)
-        pii_salt = "default-secure-salt-for-pii"
-    secret_salt = pii_salt.encode()
+    from services.privacy_service import get_pii_salt
+    secret_salt = get_pii_salt()
     return hmac.new(key=secret_salt, msg=deger.encode(), digestmod=hashlib.sha256).hexdigest()[:12]

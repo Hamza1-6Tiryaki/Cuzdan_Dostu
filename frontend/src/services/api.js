@@ -89,6 +89,7 @@ export const budgetApi = {
   yillikRapor:(y)      => api.get(`/api/rapor/yillik/${y}`).then(r => r.data),
   profil:     ()       => api.get('/api/profil').then(r => r.data),
   profilGuncelle: (d)  => api.put('/api/profil', d).then(r => r.data),
+  sifreGuncelle:  (d)  => api.put('/api/profil/sifre', d).then(r => r.data),
   oneriler:   ()       => api.get('/api/oneriler').then(r => r.data),
   kuponlar:   ()       => api.get('/api/kuponlar').then(r => r.data),
   

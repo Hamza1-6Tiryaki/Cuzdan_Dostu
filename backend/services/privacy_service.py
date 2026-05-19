@@ -33,6 +33,27 @@ class RegexPIIEngine(BasePIIEngine):
             metin = pattern.sub(f"[{alan.upper()}_GİZLİ]", metin)
         return metin
 
+def get_pii_salt() -> bytes:
+    pii_salt = os.getenv("PII_SALT")
+    if not pii_salt:
+        import pathlib
+        import secrets
+        import sys
+        salt_file = pathlib.Path(__file__).parent.parent / "data" / "pii_salt.txt"
+        try:
+            salt_file.parent.mkdir(parents=True, exist_ok=True)
+            if salt_file.exists():
+                pii_salt = salt_file.read_text().strip()
+            else:
+                pii_salt = secrets.token_urlsafe(32)
+                salt_file.write_text(pii_salt)
+                print(f"INFO: Generated persistent fallback PII_SALT at {salt_file}", file=sys.stderr)
+        except Exception as e:
+            print(f"WARNING: Failed to write persistent PII_SALT: {str(e)}. Using insecure default.", file=sys.stderr)
+            pii_salt = "default-secure-salt-for-pii"
+    return pii_salt.encode()
+
+
 class PrivacyService:
     """SOLID-D: Somut motora değil soyutlamaya bağımlı."""
     def __init__(self, engine: BasePIIEngine) -> None:
@@ -46,12 +67,7 @@ class PrivacyService:
         temiz: dict = {}
         for k, v in veri.items():
             if k in hassas and isinstance(v, str):
-                import sys
-                pii_salt = os.getenv("PII_SALT")
-                if not pii_salt:
-                    print("WARNING: PII_SALT environment variable is not set! Using default salt which is insecure for production.", file=sys.stderr)
-                    pii_salt = "default-secure-salt-for-pii"
-                secret_salt = pii_salt.encode()
+                secret_salt = get_pii_salt()
                 temiz[k] = hmac.new(key=secret_salt, msg=v.encode(), digestmod=hashlib.sha256).hexdigest()[:8] + "****"
             elif isinstance(v, str):
                 temiz[k] = self._engine.maskele(v)

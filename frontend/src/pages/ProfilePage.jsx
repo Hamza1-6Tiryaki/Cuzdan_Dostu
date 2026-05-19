@@ -93,6 +93,10 @@ export default function ProfilePage() {
   const [couponForm, setCouponForm] = useState({
     kod: '', indirim_yuzde: '', gecerlilik: ''
   });
+  
+  // Şifre güncelleme state
+  const [pwForm, setPwForm] = useState({ eski_sifre: '', yeni_sifre: '', yeni_sifre_tekrar: '' });
+  const [pwLoading, setPwLoading] = useState(false);
 
   const bugun = new Date();
 
@@ -218,6 +222,30 @@ export default function ProfilePage() {
       toast.success('Profil başarıyla güncellendi! 🔒');
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Profil güncellenirken hata oluştu.');
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!pwForm.eski_sifre || !pwForm.yeni_sifre) {
+      toast.error('Lütfen eski ve yeni şifrenizi girin.');
+      return;
+    }
+    if (pwForm.yeni_sifre !== pwForm.yeni_sifre_tekrar) {
+      toast.error('Yeni şifreler eşleşmiyor.');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await budgetApi.sifreGuncelle({
+        eski_sifre: pwForm.eski_sifre,
+        yeni_sifre: pwForm.yeni_sifre,
+      });
+      toast.success('Şifreniz başarıyla değiştirildi! 🔑');
+      setPwForm({ eski_sifre: '', yeni_sifre: '', yeni_sifre_tekrar: '' });
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Şifre güncellenirken hata oluştu.');
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -656,6 +684,36 @@ export default function ProfilePage() {
                         {sirketMi ? 'Müşterileriniz için özel indirim kodları tanımlayın.' : 'Aktif indirim kuponlarınız ve kodlarınız.'}
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Şifre Değiştirme Kartı */}
+                <div className="glass-strong p-6 rounded-2xl space-y-4">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <Zap size={20} className="text-brand-400" /> Şifreyi Güncelle
+                  </h2>
+                  <p className="text-sm text-gray-400">
+                    Hesap şifrenizi güvenli bir şekilde güncelleyebilirsiniz.
+                  </p>
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <label className="input-label">Eski Şifre</label>
+                      <input className="input-field" type="password" placeholder="Mevcut şifreniz"
+                        value={pwForm.eski_sifre} onChange={e => setPwForm(f => ({ ...f, eski_sifre: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="input-label">Yeni Şifre</label>
+                      <input className="input-field" type="password" placeholder="Yeni şifreniz"
+                        value={pwForm.yeni_sifre} onChange={e => setPwForm(f => ({ ...f, yeni_sifre: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="input-label">Yeni Şifre (Tekrar)</label>
+                      <input className="input-field" type="password" placeholder="Yeni şifreniz tekrar"
+                        value={pwForm.yeni_sifre_tekrar} onChange={e => setPwForm(f => ({ ...f, yeni_sifre_tekrar: e.target.value }))} />
+                    </div>
+                    <button onClick={handlePasswordChange} disabled={pwLoading} className="btn-primary w-full flex items-center justify-center gap-2 mt-4">
+                      {pwLoading ? 'Güncelleniyor...' : <Save size={16} />} Şifreyi Kaydet
+                    </button>
                   </div>
                 </div>
               </div>

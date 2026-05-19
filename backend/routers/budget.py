@@ -26,7 +26,6 @@ bearer = HTTPBearer(auto_error=False)
 privacy = privacy_service_olustur()
 
 import time
-_chat_rate_limit: dict[int, float] = {}
 
 
 async def _auth(credentials, db):
@@ -128,53 +127,60 @@ async def siparis_olustur(
     
     # Apply coupon discount if coupon is provided and valid
     indirim_yuzde = 0
-    if istek.kupon_kodu:
-        # Validate coupon: unused and not expired
-        async with db.execute(
-            "SELECT id, kullanici_id, indirim_yuzde FROM kuponlar WHERE kod = ? AND kullanildi = 0 AND gecerlilik >= date('now')",
-            (istek.kupon_kodu,)
-        ) as cur:
-            coupon_row = await cur.fetchone()
-        
-        if not coupon_row:
-            raise HTTPException(400, "Geçersiz veya süresi dolmuş kupon kodu.")
+    try:
+        await db.execute("BEGIN")
+        if istek.kupon_kodu:
+            # Validate coupon: unused and not expired
+            async with db.execute(
+                "SELECT id, kullanici_id, indirim_yuzde FROM kuponlar WHERE kod = ? AND kullanildi = 0 AND gecerlilik >= date('now')",
+                (istek.kupon_kodu,)
+            ) as cur:
+                coupon_row = await cur.fetchone()
             
-        sirket_id = coupon_row["kullanici_id"]
-        indirim_yuzde = coupon_row["indirim_yuzde"]
-        
-        # Verify that this coupon applies to at least one product in this order
-        applies = False
-        for urun_id, _, _ in verified_items:
-            async with db.execute("SELECT sirket_id FROM urunler WHERE id = ?", (urun_id,)) as cur:
-                prod_row = await cur.fetchone()
-            if prod_row and (prod_row["sirket_id"] == sirket_id or prod_row["sirket_id"] is None):
-                applies = True
-                break
+            if not coupon_row:
+                raise HTTPException(400, "Geçersiz veya süresi dolmuş kupon kodu.")
                 
-        if not applies:
-            raise HTTPException(400, "Bu kupon sepetinizdeki ürünler için geçerli değil.")
+            sirket_id = coupon_row["kullanici_id"]
+            indirim_yuzde = coupon_row["indirim_yuzde"]
             
-        # Apply discount to the total amount of the order
-        toplam = toplam * (1 - indirim_yuzde / 100)
-        
-        # Mark coupon as used
-        await db.execute("UPDATE kuponlar SET kullanildi = 1 WHERE kod = ?", (istek.kupon_kodu,))
-        
-    await db.execute(
-        "INSERT INTO siparisler (kullanici_id, toplam_tutar) VALUES (?,?)",
-        (k["id"], toplam)
-    )
-    await db.commit()
-    
-    async with db.execute("SELECT last_insert_rowid()") as cur:
-        siparis_id = (await cur.fetchone())[0]
-        
-    for urun_id, adet, db_price in verified_items:
+            # Verify that this coupon applies to at least one product in this order
+            applies = False
+            for urun_id, _, _ in verified_items:
+                async with db.execute("SELECT sirket_id FROM urunler WHERE id = ?", (urun_id,)) as cur:
+                    prod_row = await cur.fetchone()
+                if prod_row and (prod_row["sirket_id"] == sirket_id or prod_row["sirket_id"] is None):
+                    applies = True
+                    break
+                    
+            if not applies:
+                raise HTTPException(400, "Bu kupon sepetinizdeki ürünler için geçerli değil.")
+                
+            # Apply discount to the total amount of the order
+            toplam = toplam * (1 - indirim_yuzde / 100)
+            
+            # Mark coupon as used
+            await db.execute("UPDATE kuponlar SET kullanildi = 1 WHERE kod = ?", (istek.kupon_kodu,))
+            
         await db.execute(
-            "INSERT INTO siparis_kalemleri (siparis_id, urun_id, adet, birim_fiyat) VALUES (?,?,?,?)",
-            (siparis_id, urun_id, adet, db_price)
+            "INSERT INTO siparisler (kullanici_id, toplam_tutar) VALUES (?,?)",
+            (k["id"], toplam)
         )
-    await db.commit()
+        
+        async with db.execute("SELECT last_insert_rowid()") as cur:
+            siparis_id = (await cur.fetchone())[0]
+            
+        for urun_id, adet, db_price in verified_items:
+            await db.execute(
+                "INSERT INTO siparis_kalemleri (siparis_id, urun_id, adet, birim_fiyat) VALUES (?,?,?,?)",
+                (siparis_id, urun_id, adet, db_price)
+            )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(500, f"Sipariş oluşturulurken beklenmedik hata: {str(e)}")
+        
     return {"siparis_id": siparis_id, "toplam_tutar": toplam}
 
 
@@ -223,6 +229,10 @@ async def aylik_rapor(
     db: aiosqlite.Connection = Depends(get_db),
 ):
     k = await _auth(credentials, db)
+    if ay < 1 or ay > 12:
+        raise HTTPException(400, "Ay değeri 1 ile 12 arasında olmalıdır.")
+    if yil < 2000 or yil > 2100:
+        raise HTTPException(400, "Yıl değeri 2000 ile 2100 arasında olmalıdır.")
     return await budget_service.aylik_rapor(db, k["id"], yil, ay)
 
 
@@ -233,6 +243,8 @@ async def yillik_rapor(
     db: aiosqlite.Connection = Depends(get_db),
 ):
     k = await _auth(credentials, db)
+    if yil < 2000 or yil > 2100:
+        raise HTTPException(400, "Yıl değeri 2000 ile 2100 arasında olmalıdır.")
     return await budget_service.yillik_rapor(db, k["id"], yil)
 
 
@@ -364,16 +376,26 @@ async def chat(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: aiosqlite.Connection = Depends(get_db),
 ):
-    k    = await _auth(credentials, db)
+    k   = await _auth(credentials, db)
     now = time.time()
-    # Clean up entries older than 5 seconds to prevent memory leak
-    expired_keys = [uid for uid, t in _chat_rate_limit.items() if now - t >= 5]
-    for uid in expired_keys:
-        _chat_rate_limit.pop(uid, None)
-
-    if k["id"] in _chat_rate_limit and now - _chat_rate_limit[k["id"]] < 5:
+    # DB-backed rate limit — multi-worker uyumlu (her kullanıcı 5 sn bekleme)
+    await db.execute(
+        "INSERT INTO chat_rate_limit (kullanici_id, son_istek) VALUES (?, ?)"
+        " ON CONFLICT(kullanici_id) DO NOTHING",
+        (k["id"], 0.0)
+    )
+    async with db.execute(
+        "SELECT son_istek FROM chat_rate_limit WHERE kullanici_id = ?",
+        (k["id"],)
+    ) as cur:
+        rl_row = await cur.fetchone()
+    if rl_row and now - rl_row["son_istek"] < 5:
         raise HTTPException(429, "Çok sık istek gönderiyorsunuz. Lütfen biraz bekleyin.")
-    _chat_rate_limit[k["id"]] = now
+    await db.execute(
+        "UPDATE chat_rate_limit SET son_istek = ? WHERE kullanici_id = ?",
+        (now, k["id"])
+    )
+    await db.commit()
     
     butce = await budget_service.butce_getir(db, k["id"])
     
