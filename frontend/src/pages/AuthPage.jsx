@@ -149,7 +149,8 @@ export default function AuthPage() {
                 <div className="relative">
                   <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input className="input-field pl-10" placeholder="05XX XXX XX XX"
-                    value={form.telefon} onChange={e=>upd('telefon',e.target.value)} />
+                    maxLength={11}
+                    value={form.telefon} onChange={e=>upd('telefon',e.target.value.replace(/\D/g,'').slice(0,11))} />
                 </div>
               </div>
             </>}
@@ -178,7 +179,8 @@ export default function AuthPage() {
                 <div className="relative">
                   <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input className="input-field pl-10" placeholder="05XX XXX XX XX"
-                    value={form.telefon} onChange={e=>upd('telefon',e.target.value)} required />
+                    maxLength={11}
+                    value={form.telefon} onChange={e=>upd('telefon',e.target.value.replace(/\D/g,'').slice(0,11))} required />
                 </div>
               </div>
               <div>

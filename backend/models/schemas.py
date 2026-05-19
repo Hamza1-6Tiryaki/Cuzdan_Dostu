@@ -73,7 +73,7 @@ class MusteriKayitIstegi(KayitIstegiBase):
     ad_soyad:     str = Field(..., min_length=2)
     cinsiyet:     Optional[Cinsiyet] = None
     yas:          Optional[int]      = Field(None, ge=13, le=120)
-    telefon:      Optional[str]      = None
+    telefon:      Optional[str]      = Field(None, max_length=11)
 
 
 class SirketKayitIstegi(KayitIstegiBase):
@@ -82,7 +82,7 @@ class SirketKayitIstegi(KayitIstegiBase):
     sifre:             str = Field(..., min_length=6)
     kurum_adi:         str = Field(..., min_length=2)
     sirket_kategorisi: str
-    telefon:           Optional[str] = None
+    telefon:           Optional[str] = Field(None, max_length=11)
     aciklama:          Optional[str] = None
 
 
