@@ -15,7 +15,7 @@ import aiosqlite
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path(__file__).parent.parent / "data" / "cuzdan.db"
+DB_PATH = Path(os.getenv("DATABASE_URL", str(Path(__file__).parent.parent / "data" / "cuzdan.db")))
 
 CREATE_TABLES_SQL = """
 -- Kullanıcılar
