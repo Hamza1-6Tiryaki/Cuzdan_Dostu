@@ -256,7 +256,7 @@ export default function HomePage() {
             {[
               {label:'Aylık Gelir',val:budget.aylik_gelir,color:'text-brand-400'},
               {label:'Sabit Gider',val:budget.aylik_sabit_gider,color:'text-red-400'},
-              {label:'Birikim',val:budget.birikim_hedefi,color:'text-yellow-400'},
+              {label:'Birikim Hedefi',val:budget.birikim_hedefi,color:'text-yellow-400'},
               {label:'Bu Ay Harcanan',val:budget.harcanan_miktar || 0,color:'text-orange-400'},
               {
                 label: budget.kullanilabilir_butce < 0 ? 'Bütçe Aşımı (Borç)' : 'Kullanılabilir',

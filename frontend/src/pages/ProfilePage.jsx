@@ -395,7 +395,7 @@ export default function ProfilePage() {
                     {[
                       { l: sirketMi ? 'Toplam Sermaye' : 'Gelir', v: budget.aylik_gelir, c: 'text-brand-400' },
                       { l: sirketMi ? 'Sabit Giderler' : 'Gider', v: budget.aylik_sabit_gider, c: 'text-red-400' },
-                      { l: sirketMi ? 'Aylık Hedef Kâr' : 'Birikim', v: budget.birikim_hedefi, c: 'text-yellow-400' },
+                      { l: sirketMi ? 'Aylık Hedef Kâr' : 'Birikim Hedefi', v: budget.birikim_hedefi, c: 'text-yellow-400' },
                       { l: sirketMi ? 'Bu Ay Harcanan' : 'Harcanan', v: budget.harcanan_miktar || 0, c: 'text-orange-400' },
                     ].map(({ l, v, c }) => (
                       <div key={l} className="stat-card">
@@ -437,7 +437,7 @@ export default function ProfilePage() {
                       <PieChart>
                         <Pie data={[
                           { name: sirketMi ? 'Sabit Gider' : 'Gider', value: budget.aylik_sabit_gider, color: '#ff6b6b' },
-                          { name: sirketMi ? 'Hedef Kâr' : 'Birikim', value: budget.birikim_hedefi, color: '#f5c842' },
+                          { name: sirketMi ? 'Hedef Kâr' : 'Birikim Hedefi', value: budget.birikim_hedefi, color: '#f5c842' },
                           { name: sirketMi ? 'Harcanan' : 'Harcanan', value: budget.harcanan_miktar || 0, color: '#ff9800' },
                           { name: sirketMi ? 'Net Sermaye' : 'Serbest', value: budget.kullanilabilir_butce, color: '#1a9464' },
                         ].filter(item => item.value > 0)} cx="50%" cy="50%" outerRadius={70} dataKey="value" 
@@ -445,7 +445,7 @@ export default function ProfilePage() {
                           labelLine={false}>
                           {[
                             { name: sirketMi ? 'Sabit Gider' : 'Gider', value: budget.aylik_sabit_gider, color: '#ff6b6b' },
-                            { name: sirketMi ? 'Hedef Kâr' : 'Birikim', value: budget.birikim_hedefi, color: '#f5c842' },
+                            { name: sirketMi ? 'Hedef Kâr' : 'Birikim Hedefi', value: budget.birikim_hedefi, color: '#f5c842' },
                             { name: sirketMi ? 'Harcanan' : 'Harcanan', value: budget.harcanan_miktar || 0, color: '#ff9800' },
                             { name: sirketMi ? 'Net Sermaye' : 'Serbest', value: budget.kullanilabilir_butce, color: '#1a9464' },
                           ].filter(item => item.value > 0).map((entry, index) => (
