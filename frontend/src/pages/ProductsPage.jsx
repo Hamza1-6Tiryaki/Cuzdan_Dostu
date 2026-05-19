@@ -1,9 +1,9 @@
 /**
  * pages/ProductsPage.jsx — Ürünler + Kategori Navbar
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productApi, budgetApi } from '../services/api';
 import { useStore } from '../store/useStore';
@@ -51,6 +51,7 @@ export default function ProductsPage() {
   const [loading,    setLoading]  = useState(true);
   const [sayfa,      setSayfa]    = useState(0);
   const [sadeceBudget, setSadeceBudget] = useState(false);
+  const scrollRef = useRef(null);
   const LIMIT = 20;
 
   const loadFavoriler = useCallback(async () => {
@@ -100,13 +101,31 @@ export default function ProductsPage() {
 
       {/* Kategori Pills & Budget Filter Toggle */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 flex-1">
-          {KATEGORILER.map(({emoji,label,value}) => (
-            <button key={value} onClick={()=>setKategori(value)}
-              className={`cat-pill ${kategori===value?'active':''}`}>
-              <span>{emoji}</span>{label}
-            </button>
-          ))}
+        <div className="relative flex items-center flex-1">
+          {/* Sol ok */}
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-dark-800 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all mr-1 z-10"
+          >
+            <ChevronLeft size={15} />
+          </button>
+
+          <div ref={scrollRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1 flex-1">
+            {KATEGORILER.map(({emoji,label,value}) => (
+              <button key={value} onClick={()=>setKategori(value)}
+                className={`cat-pill ${kategori===value?'active':''}`}>
+                <span>{emoji}</span>{label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sağ ok */}
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-dark-800 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all ml-1 z-10"
+          >
+            <ChevronRight size={15} />
+          </button>
         </div>
         
         {token && budget && (
