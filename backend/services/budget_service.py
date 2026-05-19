@@ -36,7 +36,17 @@ class BudgetService:
             (kullanici_id, veri.aylik_gelir, veri.aylik_sabit_gider, veri.birikim_hedefi)
         )
         await db.commit()
-        return self._hesapla(veri.aylik_gelir, veri.aylik_sabit_gider, veri.birikim_hedefi)
+        
+        simdi = datetime.now()
+        ay_str = f"{simdi.year}-{simdi.month:02d}"
+        async with db.execute(
+            "SELECT SUM(toplam_tutar) as toplam FROM siparisler WHERE kullanici_id=? AND durum != 'iptal' AND strftime('%Y-%m', olusturuldu)=?",
+            (kullanici_id, ay_str)
+        ) as cur_harcama:
+            harcama_row = await cur_harcama.fetchone()
+        harcanan = harcama_row["toplam"] if harcama_row and harcama_row["toplam"] else 0.0
+        
+        return self._hesapla(veri.aylik_gelir, veri.aylik_sabit_gider, veri.birikim_hedefi, harcanan)
 
     async def butce_getir(self, db: aiosqlite.Connection, kullanici_id: int) -> Optional[BudceYanit]:
         async with db.execute(
@@ -46,14 +56,25 @@ class BudgetService:
             row = await cur.fetchone()
         if not row:
             return None
-        return self._hesapla(row["aylik_gelir"], row["aylik_sabit_gider"], row["birikim_hedefi"])
+            
+        simdi = datetime.now()
+        ay_str = f"{simdi.year}-{simdi.month:02d}"
+        async with db.execute(
+            "SELECT SUM(toplam_tutar) as toplam FROM siparisler WHERE kullanici_id=? AND durum != 'iptal' AND strftime('%Y-%m', olusturuldu)=?",
+            (kullanici_id, ay_str)
+        ) as cur_harcama:
+            harcama_row = await cur_harcama.fetchone()
+        harcanan = harcama_row["toplam"] if harcama_row and harcama_row["toplam"] else 0.0
+        
+        return self._hesapla(row["aylik_gelir"], row["aylik_sabit_gider"], row["birikim_hedefi"], harcanan)
 
-    def _hesapla(self, gelir: float, gider: float, birikim: float) -> BudceYanit:
+    def _hesapla(self, gelir: float, gider: float, birikim: float, harcanan: float = 0.0) -> BudceYanit:
         return BudceYanit(
             aylik_gelir=gelir,
             aylik_sabit_gider=gider,
             birikim_hedefi=birikim,
-            kullanilabilir_butce=max(0.0, gelir - gider - birikim),
+            kullanilabilir_butce=max(0.0, gelir - gider - birikim - harcanan),
+            harcanan_miktar=harcanan,
         )
 
     # ── Ödeme Alternatifleri ─────────────────────────────────────────────────

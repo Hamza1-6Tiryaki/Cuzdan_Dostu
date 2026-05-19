@@ -148,11 +148,12 @@ export default function HomePage() {
         {/* Kurumsal Finans Göstergeleri */}
         {budget && (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.1}}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
                 {label:'İşletme Sermayesi',val:budget.aylik_gelir,color:'text-brand-400'},
                 {label:'Aylık Sabit Maliyetler',val:budget.aylik_sabit_gider,color:'text-red-400'},
                 {label:'Hedef Kâr Marjı',val:budget.birikim_hedefi,color:'text-yellow-400'},
+                {label:'Bu Ay Harcanan',val:budget.harcanan_miktar || 0,color:'text-orange-400'},
                 {label:'Kullanılabilir Likidite',val:budget.kullanilabilir_butce,color:'text-accent-sky'},
               ].map(({label,val,color})=>(
                 <div key={label} className="stat-card">
@@ -234,11 +235,12 @@ export default function HomePage() {
       {/* Bütçe hızlı özet */}
       {budget && (
         <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.1}}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               {label:'Aylık Gelir',val:budget.aylik_gelir,color:'text-brand-400'},
               {label:'Sabit Gider',val:budget.aylik_sabit_gider,color:'text-red-400'},
               {label:'Birikim',val:budget.birikim_hedefi,color:'text-yellow-400'},
+              {label:'Bu Ay Harcanan',val:budget.harcanan_miktar || 0,color:'text-orange-400'},
               {label:'Kullanılabilir',val:budget.kullanilabilir_butce,color:'text-accent-sky'},
             ].map(({label,val,color})=>(
               <div key={label} className="stat-card">

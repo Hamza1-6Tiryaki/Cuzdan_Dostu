@@ -123,6 +123,7 @@ class BudceYanit(BaseModel):
     aylik_sabit_gider:    float
     birikim_hedefi:       float
     kullanilabilir_butce: float
+    harcanan_miktar:      float = 0.0
 
 
 # ─── Ürün Schemas ────────────────────────────────────────────────────────────

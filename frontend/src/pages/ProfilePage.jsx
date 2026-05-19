@@ -387,9 +387,10 @@ export default function ProfilePage() {
                       { l: sirketMi ? 'Toplam Sermaye' : 'Gelir', v: budget.aylik_gelir, c: 'text-brand-400' },
                       { l: sirketMi ? 'Sabit Giderler' : 'Gider', v: budget.aylik_sabit_gider, c: 'text-red-400' },
                       { l: sirketMi ? 'Aylık Hedef Kâr' : 'Birikim', v: budget.birikim_hedefi, c: 'text-yellow-400' },
-                      { l: sirketMi ? 'Net Çalışma Sermayesi' : 'Kullanılabilir', v: budget.kullanilabilir_butce, c: 'text-accent-sky' },
-                    ].map(({ l, v, c }) => (
-                      <div key={l} className="stat-card">
+                      { l: sirketMi ? 'Bu Ay Harcanan' : 'Harcanan', v: budget.harcanan_miktar || 0, c: 'text-orange-400' },
+                      { l: sirketMi ? 'Net Çalışma Sermayesi' : 'Kullanılabilir', v: budget.kullanilabilir_butce, c: 'text-accent-sky', wide: true },
+                    ].map(({ l, v, c, wide }) => (
+                      <div key={l} className={`stat-card ${wide ? 'col-span-2 border border-accent-sky/20 bg-accent-sky/5' : ''}`}>
                         <div className={`stat-value text-xl ${c}`}>₺{v?.toLocaleString('tr-TR')}</div>
                         <div className="stat-label text-xs">{l}</div>
                       </div>
@@ -404,13 +405,21 @@ export default function ProfilePage() {
                     <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
                         <Pie data={[
-                          { name: sirketMi ? 'Sabit İşletme Gideri' : 'Gider', value: budget.aylik_sabit_gider },
-                          { name: sirketMi ? 'Hedef Kâr Payı' : 'Birikim', value: budget.birikim_hedefi },
-                          { name: sirketMi ? 'Net Çalışma Sermayesi' : 'Serbest', value: budget.kullanilabilir_butce },
-                        ]} cx="50%" cy="50%" outerRadius={70} dataKey="value" 
+                          { name: sirketMi ? 'Sabit Gider' : 'Gider', value: budget.aylik_sabit_gider, color: '#ff6b6b' },
+                          { name: sirketMi ? 'Hedef Kâr' : 'Birikim', value: budget.birikim_hedefi, color: '#f5c842' },
+                          { name: sirketMi ? 'Harcanan' : 'Harcanan', value: budget.harcanan_miktar || 0, color: '#ff9800' },
+                          { name: sirketMi ? 'Net Sermaye' : 'Serbest', value: budget.kullanilabilir_butce, color: '#1a9464' },
+                        ].filter(item => item.value > 0)} cx="50%" cy="50%" outerRadius={70} dataKey="value" 
                           label={({ name, percent }) => `${name} %${(percent * 100).toFixed(0)}`}
                           labelLine={false}>
-                          {[0, 1, 2].map(i => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                          {[
+                            { name: sirketMi ? 'Sabit Gider' : 'Gider', value: budget.aylik_sabit_gider, color: '#ff6b6b' },
+                            { name: sirketMi ? 'Hedef Kâr' : 'Birikim', value: budget.birikim_hedefi, color: '#f5c842' },
+                            { name: sirketMi ? 'Harcanan' : 'Harcanan', value: budget.harcanan_miktar || 0, color: '#ff9800' },
+                            { name: sirketMi ? 'Net Sermaye' : 'Serbest', value: budget.kullanilabilir_butce, color: '#1a9464' },
+                          ].filter(item => item.value > 0).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
                         </Pie>
                         <Tooltip formatter={v => `₺${v?.toLocaleString('tr-TR')}`} 
                           contentStyle={{ background: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />

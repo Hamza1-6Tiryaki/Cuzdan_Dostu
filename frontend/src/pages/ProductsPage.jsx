@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { productApi } from '../services/api';
+import { productApi, budgetApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import ProductCard from '../components/ProductCard';
 
@@ -26,7 +26,7 @@ const KATEGORILER = [
 
 export default function ProductsPage() {
   const navigate = useNavigate();
-  const { token, kullanici } = useStore();
+  const { token, kullanici, budget, setBudget } = useStore();
   const sirketMi = kullanici?.tip === 'sirket';
 
   useEffect(() => {
@@ -34,6 +34,15 @@ export default function ProductsPage() {
       navigate('/profil');
     }
   }, [sirketMi, navigate]);
+
+  useEffect(() => {
+    if (token && !budget) {
+      budgetApi.getir().then(b => {
+        if (b) setBudget(b);
+      }).catch(() => {});
+    }
+  }, [token, budget, setBudget]);
+
   const [urunler,    setUrunler]  = useState([]);
   const [favoriler,  setFavoriler]= useState([]);
   const [kategori,   setKategori] = useState('');
@@ -41,6 +50,7 @@ export default function ProductsPage() {
   const [aramaInput, setAramaInput]= useState('');
   const [loading,    setLoading]  = useState(true);
   const [sayfa,      setSayfa]    = useState(0);
+  const [sadeceBudget, setSadeceBudget] = useState(false);
   const LIMIT = 20;
 
   const loadFavoriler = useCallback(async () => {
@@ -88,37 +98,61 @@ export default function ProductsPage() {
         </form>
       </div>
 
-      {/* Kategori Pills */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        {KATEGORILER.map(({emoji,label,value}) => (
-          <button key={value} onClick={()=>setKategori(value)}
-            className={`cat-pill ${kategori===value?'active':''}`}>
-            <span>{emoji}</span>{label}
+      {/* Kategori Pills & Budget Filter Toggle */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 flex-1">
+          {KATEGORILER.map(({emoji,label,value}) => (
+            <button key={value} onClick={()=>setKategori(value)}
+              className={`cat-pill ${kategori===value?'active':''}`}>
+              <span>{emoji}</span>{label}
+            </button>
+          ))}
+        </div>
+        
+        {token && budget && (
+          <button 
+            onClick={() => setSadeceBudget(!sadeceBudget)}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 ${
+              sadeceBudget 
+                ? 'bg-brand-500/10 border-brand-500/30 text-brand-400 shadow-lg shadow-brand-500/5' 
+                : 'bg-dark-900 border-white/5 text-gray-400 hover:text-white hover:border-white/10'
+            }`}
+          >
+            <SlidersHorizontal size={14} className={sadeceBudget ? 'animate-pulse text-brand-400' : ''} />
+            <span>Bütçeme Uygun (Max ₺{budget.kullanilabilir_butce?.toLocaleString('tr-TR')})</span>
           </button>
-        ))}
+        )}
       </div>
 
       {/* Ürün grid */}
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {[...Array(10)].map((_,i) => <div key={i} className="skeleton h-72 w-full"/>)}
-        </div>
-      ) : urunler.length === 0 ? (
-        <div className="glass p-16 rounded-2xl text-center text-gray-500">
-          <SlidersHorizontal size={40} className="mx-auto mb-3 text-gray-600"/>
-          <p className="text-lg">Bu kategoride ürün bulunamadı.</p>
-        </div>
-      ) : (
-        <motion.div initial={{opacity:0}} animate={{opacity:1}}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {urunler.map((u,i) => (
-            <motion.div key={u.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
-              transition={{delay: i*0.04}}>
-              <ProductCard urun={u} favoriler={favoriler} onFavoriChange={loadFavoriler}/>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+      {(() => {
+        const filtrelenmis = sadeceBudget && budget
+          ? urunler.filter(u => u.fiyat <= budget.kullanilabilir_butce)
+          : urunler;
+
+        return loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {[...Array(10)].map((_,i) => <div key={i} className="skeleton h-72 w-full"/>)}
+          </div>
+        ) : filtrelenmis.length === 0 ? (
+          <div className="glass p-16 rounded-2xl text-center text-gray-500">
+            <SlidersHorizontal size={40} className="mx-auto mb-3 text-gray-600"/>
+            <p className="text-lg">
+              {sadeceBudget ? 'Bütçenize uygun fiyatta ürün bulunamadı.' : 'Bu kategoride ürün bulunamadı.'}
+            </p>
+          </div>
+        ) : (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filtrelenmis.map((u,i) => (
+              <motion.div key={u.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+                transition={{delay: i*0.04}}>
+                <ProductCard urun={u} favoriler={favoriler} onFavoriChange={loadFavoriler}/>
+              </motion.div>
+            ))}
+          </motion.div>
+        );
+      })()}
 
       {/* Sayfalama */}
       {!loading && urunler.length === LIMIT && (
