@@ -14,6 +14,15 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import AdminPage from './pages/AdminPage';
 
 
+import { useStore } from './store/useStore';
+
+const ProtectedRoute = ({ children, adminOnly }) => {
+  const { token, kullanici } = useStore();
+  if (!token) return <Navigate to="/giris" replace />;
+  if (adminOnly && kullanici?.tip !== 'admin') return <Navigate to="/" replace />;
+  return children;
+};
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -27,6 +36,7 @@ export default function App() {
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '12px',
               backdropFilter: 'blur(20px)',
+              zIndex: 9999,
             },
             success: { iconTheme: { primary: '#1a9464', secondary: '#fff' } },
             error:   { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
@@ -41,10 +51,10 @@ export default function App() {
                 <Routes>
                   <Route path="/"        element={<HomePage />}    />
                   <Route path="/urunler" element={<ProductsPage />} />
-                  <Route path="/sepet"   element={<CartPage />}    />
-                  <Route path="/chat"    element={<ChatPage />}    />
-                  <Route path="/profil"  element={<ProfilePage />} />
-                  <Route path="/admin"   element={<AdminPage />}    />
+                  <Route path="/sepet"   element={<ProtectedRoute><CartPage /></ProtectedRoute>}    />
+                  <Route path="/chat"    element={<ProtectedRoute><ChatPage /></ProtectedRoute>}    />
+                  <Route path="/profil"  element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}    />
+                  <Route path="/admin"   element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>}    />
                   <Route path="/urun/:id" element={<ProductDetailPage />} />
                   <Route path="*"        element={<Navigate to="/" replace />} />
                 </Routes>

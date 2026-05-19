@@ -46,8 +46,13 @@ class PrivacyService:
         temiz: dict = {}
         for k, v in veri.items():
             if k in hassas and isinstance(v, str):
-                secret_salt = os.getenv("PII_SALT", "default-secure-salt-for-pii").encode()
-                temiz[k] = hmac.new(secret_salt, v.encode(), hashlib.sha256).hexdigest()[:8] + "****"
+                import sys
+                pii_salt = os.getenv("PII_SALT")
+                if not pii_salt:
+                    print("WARNING: PII_SALT environment variable is not set! Using default salt which is insecure for production.", file=sys.stderr)
+                    pii_salt = "default-secure-salt-for-pii"
+                secret_salt = pii_salt.encode()
+                temiz[k] = hmac.new(key=secret_salt, msg=v.encode(), digestmod=hashlib.sha256).hexdigest()[:8] + "****"
             elif isinstance(v, str):
                 temiz[k] = self._engine.maskele(v)
             else:

@@ -71,7 +71,7 @@ from fastapi.responses import JSONResponse
 async def permission_error_handler(request: Request, exc: PermissionError):
     logger.warning(f"🔒 Yetkilendirme Hatası ({request.url.path}): {exc}")
     return JSONResponse(
-        status_code=401,
+        status_code=403,
         content={"detail": str(exc)},
     )
 

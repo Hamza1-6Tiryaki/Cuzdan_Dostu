@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from database import get_db
 from models.schemas import (
     BudceKaydet, BudceYanit, ChatIstek, AjanYanit,
-    SepetAnaliz, SiparisUrun, ProfilGuncelle,
+    SepetAnaliz, SiparisUrun, ProfilGuncelle, SifreGuncelle,
     UrunEkle, KuponEkle, FiyatAnalizIstek, FiyatAnalizYanit,
 )
 from services.auth_service  import mevcut_kullanici
@@ -99,7 +99,8 @@ async def sepet_kuponlari(
           AND (c.id IN (SELECT DISTINCT sirket_id FROM urunler WHERE id IN ({placeholders}) AND sirket_id IS NOT NULL)
                OR EXISTS (SELECT 1 FROM urunler WHERE id IN ({placeholders}) AND sirket_id IS NULL))
     """
-    async with db.execute(query, istek.urun_ids) as cur:
+    params = istek.urun_ids + istek.urun_ids
+    async with db.execute(query, params) as cur:
         rows = await cur.fetchall()
     return {"kuponlar": [dict(r) for r in rows]}
 
@@ -112,13 +113,18 @@ async def siparis_olustur(
 ):
     k = await _auth(credentials, db)
     
+    toplam = 0.0
+    verified_items = []
     for u in istek.urunler:
-        async with db.execute("SELECT stok_var FROM urunler WHERE id=?", (u.urun_id,)) as cur:
+        async with db.execute("SELECT fiyat, stok_var FROM urunler WHERE id=?", (u.urun_id,)) as cur:
             row = await cur.fetchone()
-            if not row or not row["stok_var"]:
+            if not row:
+                raise HTTPException(400, f"Ürün (ID:{u.urun_id}) bulunamadı.")
+            if not row["stok_var"]:
                 raise HTTPException(400, f"Ürün (ID:{u.urun_id}) stokta yok.")
-                
-    toplam = sum(u.birim_fiyat * u.adet for u in istek.urunler)
+        db_price = row["fiyat"]
+        toplam += db_price * u.adet
+        verified_items.append((u.urun_id, u.adet, db_price))
     
     # Apply coupon discount if coupon is provided and valid
     indirim_yuzde = 0
@@ -138,8 +144,8 @@ async def siparis_olustur(
         
         # Verify that this coupon applies to at least one product in this order
         applies = False
-        for u in istek.urunler:
-            async with db.execute("SELECT sirket_id FROM urunler WHERE id = ?", (u.urun_id,)) as cur:
+        for urun_id, _, _ in verified_items:
+            async with db.execute("SELECT sirket_id FROM urunler WHERE id = ?", (urun_id,)) as cur:
                 prod_row = await cur.fetchone()
             if prod_row and (prod_row["sirket_id"] == sirket_id or prod_row["sirket_id"] is None):
                 applies = True
@@ -163,10 +169,10 @@ async def siparis_olustur(
     async with db.execute("SELECT last_insert_rowid()") as cur:
         siparis_id = (await cur.fetchone())[0]
         
-    for u in istek.urunler:
+    for urun_id, adet, db_price in verified_items:
         await db.execute(
             "INSERT INTO siparis_kalemleri (siparis_id, urun_id, adet, birim_fiyat) VALUES (?,?,?,?)",
-            (siparis_id, u.urun_id, u.adet, u.birim_fiyat)
+            (siparis_id, urun_id, adet, db_price)
         )
     await db.commit()
     return {"siparis_id": siparis_id, "toplam_tutar": toplam}
@@ -328,6 +334,28 @@ async def profil_guncelle(
     return d
 
 
+@router.put("/profil/sifre")
+async def profil_sifre_guncelle(
+    istek: SifreGuncelle,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    k = await _auth(credentials, db)
+    async with db.execute("SELECT sifre_hash FROM kullanicilar WHERE id=?", (k["id"],)) as cur:
+        row = await cur.fetchone()
+    if not row or not row["sifre_hash"]:
+        raise HTTPException(404, "Kullanıcı bulunamadı.")
+        
+    from services.auth_service import sifre_dogrula, sifre_hashle
+    if not sifre_dogrula(istek.eski_sifre, row["sifre_hash"]):
+        raise HTTPException(400, "Mevcut şifreniz hatalı.")
+        
+    yeni_hash = sifre_hashle(istek.yeni_sifre)
+    await db.execute("UPDATE kullanicilar SET sifre_hash=? WHERE id=?", (yeni_hash, k["id"]))
+    await db.commit()
+    return {"detail": "Şifreniz başarıyla güncellendi."}
+
+
 # ── AI Chat ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=AjanYanit)
@@ -338,6 +366,11 @@ async def chat(
 ):
     k    = await _auth(credentials, db)
     now = time.time()
+    # Clean up entries older than 5 seconds to prevent memory leak
+    expired_keys = [uid for uid, t in _chat_rate_limit.items() if now - t >= 5]
+    for uid in expired_keys:
+        _chat_rate_limit.pop(uid, None)
+
     if k["id"] in _chat_rate_limit and now - _chat_rate_limit[k["id"]] < 5:
         raise HTTPException(429, "Çok sık istek gönderiyorsunuz. Lütfen biraz bekleyin.")
     _chat_rate_limit[k["id"]] = now

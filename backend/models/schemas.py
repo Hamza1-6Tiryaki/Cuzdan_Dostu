@@ -42,6 +42,7 @@ class UrunKategorisi(str, Enum):
     ELEKTRONIK  = "Elektronik"
     SPOR        = "Spor"
     AKSESUAR    = "Aksesuar"
+    OYUNCAK     = "Oyuncak"
 
 class RiskSeviyesi(str, Enum):
     DUSUK   = "dusuk"
@@ -274,5 +275,10 @@ class KuponKullan(BaseModel):
 
 def pii_hashle(deger: str) -> str:
     """Hassas veriyi HMAC-SHA256 ve salt ile hash'ler — KVKK uyumlu."""
-    secret_salt = os.getenv("PII_SALT", "default-secure-salt-for-pii").encode()
-    return hmac.new(secret_salt, deger.encode(), hashlib.sha256).hexdigest()[:12]
+    import sys
+    pii_salt = os.getenv("PII_SALT")
+    if not pii_salt:
+        print("WARNING: PII_SALT environment variable is not set! Using default salt which is insecure for production.", file=sys.stderr)
+        pii_salt = "default-secure-salt-for-pii"
+    secret_salt = pii_salt.encode()
+    return hmac.new(key=secret_salt, msg=deger.encode(), digestmod=hashlib.sha256).hexdigest()[:12]

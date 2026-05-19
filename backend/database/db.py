@@ -191,19 +191,21 @@ MOCK_URUNLER = [
 async def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
-        try:
-            await db.execute("ALTER TABLE butceler RENAME TO butceler_eski")
-            await db.executescript(CREATE_TABLES_SQL)
-            await db.execute("INSERT INTO butceler SELECT * FROM butceler_eski")
-            await db.execute("DROP TABLE butceler_eski")
-            await db.execute("ALTER TABLE urunler ADD COLUMN sirket_id INTEGER")
-        except Exception:
-            pass
-            
+        db.row_factory = aiosqlite.Row
+        
+        # 1. Create tables first
         await db.executescript(CREATE_TABLES_SQL)
         await db.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_butceler_kullanici_id ON butceler(kullanici_id)"
         )
+        
+        # 2. Add columns conditionally if they don't exist yet
+        async with db.execute("PRAGMA table_info(urunler)") as cur:
+            columns = [row["name"] for row in await cur.fetchall()]
+        if "sirket_id" not in columns:
+            await db.execute("ALTER TABLE urunler ADD COLUMN sirket_id INTEGER")
+            
+        await db.commit()
         
         # Ensure all mock products exist, insert or update
         for item in MOCK_URUNLER:
@@ -226,7 +228,7 @@ async def init_db() -> None:
             admin_exists = await cur.fetchone()
         if not admin_exists:
             from services.auth_service import sifre_hashle
-            admin_sifre = sifre_hashle("admin123")
+            admin_sifre = sifre_hashle(os.getenv("ADMIN_PASSWORD", "admin123"))
             await db.execute(
                 """INSERT INTO kullanicilar (kullanici_adi, email, sifre_hash, tip, ad_soyad, kvkk_onay)
                    VALUES (?,?,?,?,?,?)""",

@@ -19,9 +19,9 @@ api.interceptors.request.use(cfg => {
       if (state?.token) {
         cfg.headers.Authorization = `Bearer ${state.token}`;
       } else {
-        if (import.meta.env.DEV) console.error('api: no token found in localStorage auth state');
+        if (import.meta.env.DEV) console.log('api: no token found in localStorage auth state');
       }
-      if (import.meta.env.DEV) console.error('api: request Authorization header=', cfg.headers.Authorization);
+      if (import.meta.env.DEV) console.log('api: request Authorization header present:', !!cfg.headers.Authorization);
     } catch (parseError) {
       if (import.meta.env.DEV) console.error('api: failed to parse localStorage auth state', parseError);
     }
@@ -32,7 +32,7 @@ api.interceptors.request.use(cfg => {
 // Response logging for debugging auth headers and statuses
 api.interceptors.response.use(
   (res) => {
-    if (import.meta.env.DEV) console.error('api: response', res.status, res.config?.url);
+    if (import.meta.env.DEV) console.log('api: response', res.status, res.config?.url);
     return res;
   },
   (err) => {
