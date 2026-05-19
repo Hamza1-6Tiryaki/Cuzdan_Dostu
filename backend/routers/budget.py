@@ -31,7 +31,10 @@ import time
 async def _auth(credentials, db):
     if not credentials:
         raise HTTPException(401, "Token gerekli.")
-    return await mevcut_kullanici(credentials.credentials, db)
+    try:
+        return await mevcut_kullanici(credentials.credentials, db)
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
 
 
 # ── Bütçe ────────────────────────────────────────────────────────────────────
