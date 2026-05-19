@@ -165,12 +165,47 @@ class AIService:
                 f"Maliyetimiz: ₺{maliyet:,.2f}\n"
                 f"Belirlediğimiz Satış Fiyatı: ₺{fiyat:,.2f}\n"
                 f"Hesapladığımız Pazar Ortalama Fiyatı: ₺{ortalama_piyasa:,.2f}\n\n"
-                f"Bu fiyatlandırma hakkında Türkiye e-ticaret pazarı koşullarını göz önünde bulundurarak "
-                f"şirketimize 2-3 cümlelik profesyonel bir fiyat konumlandırma tavsiyesi yaz."
+                f"ÖNEMLI TALİMAT: Sen bir finans danışmanısın. Lütfen bu fiyatlandırma hakkında Türkiye e-ticaret pazarı koşullarını göz önünde bulundurarak "
+                f"şirketimize 2-3 cümlelik DOĞAL ve PROFESYONEL bir fiyat konumlandırma tavsiyesi yaz.\n\n"
+                f"KURALLARI DİKKATLE OKU:\n"
+                f"1. ASLA teknik terimler, kod isimleri, fonksiyon adları veya sistem mesajları kullanma\n"
+                f"2. ASLA 'output=', 'yanit=', 'AgentRunResult', 'risk_seviyesi=' gibi teknik ifadeler yazma\n"
+                f"3. SADECE insan gibi doğal Türkçe cümleler kur\n"
+                f"4. Samimi ve profesyonel bir dille yaz, sanki bir finans danışmanı konuşuyor gibi\n"
+                f"5. Cevabın SADECE tavsiye metni olsun, başka hiçbir şey ekleme\n\n"
+                f"Örnek iyi cevap: 'Belirlediğiniz fiyat pazar ortalamasının biraz üzerinde. Ürününüzün kalitesi yüksekse bu fiyatlandırma rekabetçi olabilir. "
+                f"Ancak ilk dönemde satışları hızlandırmak için %5-10 arası bir kampanya düşünebilirsiniz.'"
             )
             try:
                 res = await self._agent.run(prompt)
-                tavsiye = res.yanit if hasattr(res, 'yanit') else str(res)
+                # Extract clean text from response
+                if hasattr(res, 'yanit'):
+                    tavsiye = res.yanit
+                elif hasattr(res, 'data') and hasattr(res.data, 'yanit'):
+                    tavsiye = res.data.yanit
+                else:
+                    tavsiye = str(res)
+                
+                # Clean up any technical artifacts that might slip through
+                import re
+                # Remove any technical patterns
+                tavsiye = re.sub(r'output=.*?(?=\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'yanit=.*?(?=\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'AgentRunResult\(.*?\)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'risk_seviyesi=.*?(?=,|\)|\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'odeme_alternatifleri=.*?(?=,|\)|\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'onerileri=.*?(?=,|\)|\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'aracllar_kullanildi=.*?(?=,|\)|\n|$)', '', tavsiye, flags=re.IGNORECASE)
+                tavsiye = re.sub(r'\[.*?\]', '', tavsiye)  # Remove array brackets
+                tavsiye = re.sub(r'\{.*?\}', '', tavsiye)  # Remove object brackets
+                tavsiye = tavsiye.strip()
+                
+                # If cleaning resulted in empty or very short text, use fallback
+                if len(tavsiye) < 20:
+                    tavsiye = (
+                        f"Belirlediğiniz ₺{fiyat:,.2f} satış fiyatı ve ₺{maliyet:,.2f} maliyet ile "
+                        f"%{kar_orani:.1f} kâr oranına sahipsiniz. Pazar ortalaması tahmini ₺{ortalama_piyasa:,.2f} civarındadır."
+                    )
             except Exception:
                 tavsiye = (
                     f"Belirlediğiniz ₺{fiyat:,.2f} satış fiyatı ve ₺{maliyet:,.2f} maliyet ile "
