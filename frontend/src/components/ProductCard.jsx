@@ -10,8 +10,6 @@ import { useStore } from '../store/useStore';
 import { productApi } from '../services/api';
 import toast from 'react-hot-toast';
 
-const FALLBACK = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400';
-
 export default function ProductCard({ urun, favoriler = [], onFavoriChange }) {
   const navigate = useNavigate();
   const { addToCart, token, kullanici } = useStore();

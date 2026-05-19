@@ -20,6 +20,26 @@ const DURUM_TR = {
   teslim_edildi:'Teslim Edildi', iptal:'İptal',
 };
 
+function ProductImage({ src, alt }) {
+  const [err, setErr] = useState(false);
+  if (src && !err) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover rounded-lg"
+        onError={() => setErr(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-dark-800 text-gray-500 rounded-lg">
+      <Package size={24} className="text-gray-600 mb-1" />
+      <span className="text-[10px] text-gray-500">Görsel Yok</span>
+    </div>
+  );
+}
+
 function SiparisDurumKarti({ siparis }) {
   return (
     <motion.div initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} className="glass p-4 rounded-2xl">
@@ -276,8 +296,9 @@ export default function HomePage() {
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {gecmis.slice(0,8).map(u => (
               <div key={u.id} className="glass flex-shrink-0 w-44 p-3 rounded-xl">
-                <img src={u.resim_url||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'}
-                  alt={u.ad} className="w-full h-28 object-cover rounded-lg mb-2" onError={e=>e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'} />
+                <div className="w-full h-28 mb-2 overflow-hidden rounded-lg">
+                  <ProductImage src={u.resim_url} alt={u.ad} />
+                </div>
                 <p className="text-xs font-medium text-gray-200 line-clamp-2">{u.ad}</p>
                 <p className="text-xs text-brand-400 font-bold mt-1">₺{u.fiyat?.toLocaleString('tr-TR')}</p>
                 <p className="text-[10px] text-gray-600 mt-0.5">{u.goruntuleme_sayisi}x görüntülendi</p>

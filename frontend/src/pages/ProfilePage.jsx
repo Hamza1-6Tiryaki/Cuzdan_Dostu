@@ -1074,12 +1074,9 @@ export default function ProfilePage() {
                     return (
                       <div key={idx} className="glass p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-brand-500/20 transition-all">
                         <div className="flex items-center gap-4">
-                          <img 
-                            src={item.urun_resim_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
-                            alt={item.urun_ad} 
-                            className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-dark-700 border border-white/5"
-                            onError={e => { e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'; }}
-                          />
+                          <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-dark-700 border border-white/5">
+                            <ProductImage src={item.urun_resim_url} alt={item.urun_ad} />
+                          </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-white text-sm">Sipariş #{item.siparis_id}</span>

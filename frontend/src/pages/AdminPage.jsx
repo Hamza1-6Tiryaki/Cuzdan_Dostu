@@ -7,11 +7,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, Users, ShoppingBag, CreditCard, Tag, BarChart3, 
   Trash2, ToggleLeft, ToggleRight, CheckCircle, Clock, 
-  Truck, CheckSquare, XCircle, Search, AlertCircle, RefreshCw
+  Truck, CheckSquare, XCircle, Search, AlertCircle, RefreshCw,
+  Package
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { adminApi } from '../services/api';
 import toast from 'react-hot-toast';
+
+function ProductImage({ src, alt }) {
+  const [err, setErr] = useState(false);
+  if (src && !err) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover rounded-lg"
+        onError={() => setErr(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-dark-800 text-gray-500 rounded-lg">
+      <Package size={18} className="text-gray-600 mb-0.5" />
+      <span className="text-[8px] text-gray-500">Görsel Yok</span>
+    </div>
+  );
+}
 
 const TABS = [
   { id: 'dashboard', label: 'Özet Panel', icon: BarChart3 },
@@ -447,12 +468,9 @@ export default function AdminPage() {
                             <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/1">
                               <td className="py-3">
                                 <div className="flex items-center gap-3">
-                                  <img 
-                                    src={p.resim_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
-                                    alt={p.ad} 
-                                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-dark-700 border border-white/5"
-                                    onError={e => e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'}
-                                  />
+                                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-dark-700 border border-white/5">
+                                    <ProductImage src={p.resim_url} alt={p.ad} />
+                                  </div>
                                   <div>
                                     <p className="font-bold text-white line-clamp-1">{p.ad}</p>
                                     <p className="text-xs text-gray-500">{p.marka}</p>

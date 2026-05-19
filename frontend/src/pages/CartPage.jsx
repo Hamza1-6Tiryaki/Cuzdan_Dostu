@@ -7,11 +7,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Trash2, Plus, Minus, Wallet, Zap, Star, 
   ArrowRight, Sparkles, CreditCard, Lock, CheckCircle, 
-  Calendar, User, HelpCircle, ArrowLeft 
+  Calendar, User, HelpCircle, ArrowLeft, Package
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { aiApi, productApi, budgetApi } from '../services/api';
 import toast from 'react-hot-toast';
+
+function ProductImage({ src, alt }) {
+  const [err, setErr] = useState(false);
+  if (src && !err) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover rounded-xl"
+        onError={() => setErr(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-dark-800 text-gray-500 rounded-xl">
+      <Package size={24} className="text-gray-600 mb-1" />
+      <span className="text-[9px] text-gray-500">Görsel Yok</span>
+    </div>
+  );
+}
 
 export default function CartPage() {
   const { cart, removeFromCart, updateCartQty, clearCart, cartTotal, budget, token, kullanici, setBudget } = useStore();
@@ -700,9 +720,9 @@ export default function CartPage() {
                 initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}}
                 exit={{opacity:0,x:20,height:0}} layout
                 className="glass p-4 rounded-2xl flex items-center gap-4">
-                <img src={urun.resim_url||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'}
-                  alt={urun.ad} className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-                  onError={e=>e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'}/>
+                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                  <ProductImage src={urun.resim_url} alt={urun.ad} />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-100 line-clamp-1">{urun.ad}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{urun.marka} · {urun.site}</p>
