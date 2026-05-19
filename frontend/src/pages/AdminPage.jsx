@@ -8,7 +8,7 @@ import {
   Shield, Users, ShoppingBag, CreditCard, Tag, BarChart3, 
   Trash2, ToggleLeft, ToggleRight, CheckCircle, Clock, 
   Truck, CheckSquare, XCircle, Search, AlertCircle, RefreshCw,
-  Package
+  Package, Bell
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { adminApi } from '../services/api';
@@ -40,6 +40,7 @@ const TABS = [
   { id: 'products',  label: 'Ürün Kataloğu', icon: ShoppingBag },
   { id: 'orders',    label: 'Siparişler',   icon: CreditCard },
   { id: 'coupons',   label: 'İndirim Kuponları', icon: Tag },
+  { id: 'notifications', label: 'Stok Bildirimleri', icon: Bell },
 ];
 
 export default function AdminPage() {
@@ -55,6 +56,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   const adminMi = kullanici?.tip === 'admin';
 
@@ -95,6 +97,9 @@ export default function AdminPage() {
       } else if (activeTab === 'coupons') {
         const res = await adminApi.coupons();
         setCoupons(res);
+      } else if (activeTab === 'notifications') {
+        const res = await adminApi.getBildirimListesi();
+        setNotifications(res);
       }
     } catch (err) {
       toast.error('Veriler yüklenirken hata oluştu.');
@@ -131,7 +136,17 @@ export default function AdminPage() {
     try {
       const res = await adminApi.toggleProductStock(productId);
       setProducts(products.map(p => p.id === productId ? { ...p, stok_var: res.stok_var } : p));
-      toast.success(res.stok_var === 1 ? 'Ürün stokta olarak işaretlendi.' : 'Ürün tükendi olarak işaretlendi.');
+      
+      if (res.stok_var === 1) {
+        if (res.bildirim_gonderilecekler && res.bildirim_gonderilecekler.length > 0) {
+          const userNames = res.bildirim_gonderilecekler.map(u => u.kullanici_adi).join(', ');
+          toast.success(`Ürün stokta! Şuna bildirim gönderildi: ${userNames} 🔔`, { duration: 6000 });
+        } else {
+          toast.success('Ürün stokta olarak işaretlendi.');
+        }
+      } else {
+        toast.success('Ürün tükendi olarak işaretlendi.');
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Ürün stok durumu değiştirilemedi.');
     }
@@ -641,6 +656,69 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500 italic py-4">Sistemde kayıtlı aktif bir kupon bulunmuyor.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Sekme 6: Stok Bildirimleri */}
+              {activeTab === 'notifications' && (
+                <div className="glass p-6 rounded-3xl border border-white/5">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Bell size={18} className="text-yellow-400" /> Aktif Stok Bildirim Talepleri
+                  </h3>
+
+                  {notifications.length > 0 ? (
+                    <div className="space-y-4">
+                      {notifications
+                        .filter(n => n.urun_ad.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map((n) => (
+                          <div key={n.urun_id} className="glass p-5 rounded-2xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-base">{n.urun_ad}</span>
+                                <span className={`text-[9px] font-bold ${n.stok_var === 1 ? 'badge-green' : 'badge-red'}`}>
+                                  {n.stok_var === 1 ? 'STOKTA' : 'TÜKENDİ'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Toplam {n.kullanicilar?.length || 0} kullanıcı bildirim bekliyor.
+                              </p>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {n.kullanicilar?.map((u) => (
+                                  <span key={u.id} className="text-[10px] bg-dark-800 text-gray-400 py-1 px-2.5 rounded-lg border border-white/5">
+                                    {u.kullanici_adi} ({u.email})
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await adminApi.toggleProductStock(n.urun_id);
+                                  if (res.bildirim_gonderilecekler && res.bildirim_gonderilecekler.length > 0) {
+                                    const userNames = res.bildirim_gonderilecekler.map(u => u.kullanici_adi).join(', ');
+                                    toast.success(`Ürün stokta! Şuna bildirim gönderildi: ${userNames} 🔔`, { duration: 6000 });
+                                  } else {
+                                    toast.success(res.mesaj);
+                                  }
+                                  // Refresh data
+                                  const list = await adminApi.getBildirimListesi();
+                                  setNotifications(list);
+                                } catch (err) {
+                                  toast.error('İşlem gerçekleştirilemedi.');
+                                }
+                              }}
+                              className="btn-primary py-2.5 px-4 text-xs font-bold whitespace-nowrap self-stretch md:self-auto flex items-center justify-center gap-1.5"
+                            >
+                              <RefreshCw size={14} /> Stoğu Güncelle & Bildir
+                            </button>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic py-4">Herhangi bir ürün için aktif stok bildirim talebi bulunmuyor.</p>
                   )}
                 </div>
               )}

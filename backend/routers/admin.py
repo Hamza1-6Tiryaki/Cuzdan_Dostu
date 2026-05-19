@@ -162,15 +162,35 @@ async def toggle_product_stock(
     _admin: dict = Depends(get_current_admin),
     db: aiosqlite.Connection = Depends(get_db)
 ):
-    async with db.execute("SELECT stok_var FROM urunler WHERE id = ?", (product_id,)) as cur:
+    async with db.execute("SELECT stok_var, bildirim_listesi FROM urunler WHERE id = ?", (product_id,)) as cur:
         row = await cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı.")
 
     yeni_durum = 0 if row["stok_var"] == 1 else 1
+    
+    bildirim_gonderilecekler = []
+    if yeni_durum == 1 and row["bildirim_listesi"]:
+        ids = [int(x) for x in row["bildirim_listesi"].split(",") if x.strip().isdigit()]
+        if ids:
+            placeholders = ",".join(["?" for _ in ids])
+            async with db.execute(
+                f"SELECT id, kullanici_adi, email FROM kullanicilar WHERE id IN ({placeholders})",
+                ids
+            ) as u_cur:
+                u_rows = await u_cur.fetchall()
+                bildirim_gonderilecekler = [dict(u) for u in u_rows]
+            
+            # Clear notification list after they are triggered
+            await db.execute("UPDATE urunler SET bildirim_listesi = '' WHERE id = ?", (product_id,))
+
     await db.execute("UPDATE urunler SET stok_var = ? WHERE id = ?", (yeni_durum, product_id))
     await db.commit()
-    return {"mesaj": "Ürün stok durumu güncellendi.", "stok_var": yeni_durum}
+    return {
+        "mesaj": "Ürün stok durumu güncellendi.", 
+        "stok_var": yeni_durum,
+        "bildirim_gonderilecekler": bildirim_gonderilecekler
+    }
 
 @router.delete("/products/{product_id}")
 async def delete_product(
@@ -269,3 +289,37 @@ async def delete_coupon(
     await db.execute("DELETE FROM kuponlar WHERE id = ?", (coupon_id,))
     await db.commit()
     return {"mesaj": "Kupon başarıyla silindi."}
+
+
+@router.get("/bildirim-listesi")
+async def get_bildirim_listesi(
+    _admin: dict = Depends(get_current_admin),
+    db: aiosqlite.Connection = Depends(get_db)
+):
+    async with db.execute(
+        "SELECT id, ad, stok_var, bildirim_listesi FROM urunler WHERE bildirim_listesi IS NOT NULL AND bildirim_listesi != ''"
+    ) as cur:
+        rows = await cur.fetchall()
+        
+    liste = []
+    for r in rows:
+        ids_str = r["bildirim_listesi"] or ""
+        ids = [int(x) for x in ids_str.split(",") if x.strip().isdigit()]
+        if not ids:
+            continue
+            
+        placeholders = ",".join(["?" for _ in ids])
+        async with db.execute(
+            f"SELECT id, kullanici_adi, email FROM kullanicilar WHERE id IN ({placeholders})",
+            ids
+        ) as u_cur:
+            u_rows = await u_cur.fetchall()
+            kullanicilar = [dict(u) for u in u_rows]
+            
+        liste.append({
+            "urun_id": r["id"],
+            "urun_ad": r["ad"],
+            "stok_var": r["stok_var"],
+            "kullanicilar": kullanicilar
+        })
+    return liste

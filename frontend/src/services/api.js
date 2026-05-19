@@ -75,6 +75,7 @@ export const productApi = {
   sirketUrunEkle: (d)  => api.post('/api/urunler', d).then(r => r.data),
   sirketUrunSil:  (id) => api.delete(`/api/urunler/${id}`).then(r => r.data),
   fiyatAnaliz:    (d)  => api.post('/api/urun/fiyat-analiz', d).then(r => r.data),
+  stokBildir:     (id) => api.post(`/api/urunler/${id}/bildirim`).then(r => r.data),
 };
 
 // ── Budget ───────────────────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ export const adminApi = {
   updateOrderStatus:   (id, durum) => api.put(`/api/admin/orders/${id}/durum`, { durum }).then(r => r.data),
   coupons:             () => api.get('/api/admin/coupons').then(r => r.data),
   deleteCoupon:        (id) => api.delete(`/api/admin/coupons/${id}`).then(r => r.data),
+  getBildirimListesi:  () => api.get('/api/admin/bildirim-listesi').then(r => r.data),
 };
 
 export default api;

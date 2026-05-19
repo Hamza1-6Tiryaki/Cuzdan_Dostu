@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS urunler (
     resim_url   TEXT,
     aciklama    TEXT,
     puan        REAL    NOT NULL DEFAULT 4.0,
+    bildirim_listesi TEXT DEFAULT '',
     olusturuldu TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -204,6 +205,8 @@ async def init_db() -> None:
             columns = [row["name"] for row in await cur.fetchall()]
         if "sirket_id" not in columns:
             await db.execute("ALTER TABLE urunler ADD COLUMN sirket_id INTEGER")
+        if "bildirim_listesi" not in columns:
+            await db.execute("ALTER TABLE urunler ADD COLUMN bildirim_listesi TEXT DEFAULT ''")
             
         await db.commit()
         

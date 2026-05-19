@@ -326,3 +326,32 @@ async def urun_sil(
     await db.commit()
     return {"mesaj": "Ürün başarıyla silindi! 🗑️"}
 
+
+@router.post("/{urun_id}/bildirim")
+async def stok_bildirimi_kaydet(
+    urun_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    if not credentials:
+        raise HTTPException(401, "Token gerekli.")
+    k = await mevcut_kullanici(credentials.credentials, db)
+    kid = k["id"]
+    
+    async with db.execute("SELECT id, bildirim_listesi FROM urunler WHERE id=?", (urun_id,)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Ürün bulunamadı.")
+        
+    liste_str = row["bildirim_listesi"] or ""
+    ids = set(filter(None, [x.strip() for x in liste_str.split(",")]))
+    
+    if str(kid) not in ids:
+        ids.add(str(kid))
+        yeni_liste = ",".join(sorted(ids))
+        await db.execute("UPDATE urunler SET bildirim_listesi=? WHERE id=?", (yeni_liste, urun_id))
+        await db.commit()
+        return {"mesaj": "Stok bildirim listesine kaydedildiniz. 🔔"}
+    
+    return {"mesaj": "Zaten bildirim listesindesiniz."}
+

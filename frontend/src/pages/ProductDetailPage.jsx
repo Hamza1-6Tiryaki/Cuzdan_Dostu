@@ -20,6 +20,7 @@ export default function ProductDetailPage() {
   const [urun, setUrun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imgErr, setImgErr] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
     const loadUrun = async () => {
@@ -41,6 +42,15 @@ export default function ProductDetailPage() {
     loadUrun();
   }, [id, token, navigate]);
 
+  useEffect(() => {
+    if (urun && kullanici && urun.bildirim_listesi) {
+      const ids = urun.bildirim_listesi.split(',').map(x => x.trim());
+      if (ids.includes(String(kullanici.id))) {
+        setSubscribed(true);
+      }
+    }
+  }, [urun, kullanici]);
+
   const handleSepeteEkle = () => {
     if (!token || !kullanici) {
       toast.error('Sepete ürün eklemek için önce giriş yapmalısınız.');
@@ -58,6 +68,21 @@ export default function ProductDetailPage() {
       resim_url: urun.resim_url,
     });
     toast.success(`${urun.ad} sepete eklendi! 🛒`);
+  };
+
+  const handleStokHaberVer = async () => {
+    if (!token || !kullanici) {
+      toast.error('Stok bildirim listesine kaydolmak için önce giriş yapmalısınız.');
+      navigate('/giris');
+      return;
+    }
+    try {
+      const res = await productApi.stokBildir(urun.id);
+      setSubscribed(true);
+      toast.success(res.mesaj || 'Stok bildirim listesine kaydedildiniz. 🔔');
+    } catch (err) {
+      toast.error('Bildirim kaydedilemedi.');
+    }
   };
 
   if (loading) {
@@ -205,15 +230,29 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Sepete Ekle Butonu */}
-          {!sirketMi && urun.stok_var && (
+          {/* Sepete Ekle / Stok Haber Ver Butonu */}
+          {!sirketMi && (
             <div className="pt-4 border-t border-white/5">
-              <button
-                onClick={handleSepeteEkle}
-                className="btn-primary w-full md:w-auto flex items-center justify-center gap-3 px-8 py-4 shadow-brand"
-              >
-                <ShoppingCart size={18} /> Sepete Ekle
-              </button>
+              {urun.stok_var ? (
+                <button
+                  onClick={handleSepeteEkle}
+                  className="btn-primary w-full md:w-auto flex items-center justify-center gap-3 px-8 py-4 shadow-brand"
+                >
+                  <ShoppingCart size={18} /> Sepete Ekle
+                </button>
+              ) : (
+                <button
+                  onClick={handleStokHaberVer}
+                  disabled={subscribed}
+                  className={`w-full md:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${
+                    subscribed 
+                      ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 cursor-default' 
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-dark-950 shadow-lg shadow-yellow-500/10'
+                  }`}
+                >
+                  <Info size={18} /> {subscribed ? 'Bildirim Listesindesiniz 🔔' : 'Stok Gelince Haber Ver'}
+                </button>
+              )}
             </div>
           )}
         </div>
