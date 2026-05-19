@@ -179,7 +179,7 @@ export default function ProfilePage() {
       return;
     }
     loadData();
-  }, [token, budget, sirketMi, kullanici]);
+  }, [token, sirketMi]);
 
   const handleBudceSave = async () => {
     try {
